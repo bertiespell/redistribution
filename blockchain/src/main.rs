@@ -1,15 +1,31 @@
 use openssl::sha;
 use hex;
+use std::time::SystemTime;
+
 fn main() {
     println!("Hello, world!");
 }
 
 struct Block {
     index: u32, // height of the blockchain
-    timestamp: String,
-    data: u32,
+    timestamp: SystemTime,
+    data: String,
     hash: String,
     previous_hash: String
+}
+
+impl Block {
+    fn genesis_block() -> Block {
+        let timestamp = SystemTime::now();
+        let hash = calculate_hash(&0, &String::new(), &format!("{:?}", timestamp), &String::new());
+        Block {
+            index: 0,
+            timestamp: timestamp,
+            data: String::new(),
+            hash: String::new(),
+            previous_hash: String::new()
+        }
+    }
 }
 
 fn calculate_hash(index: &i32, previous_hash: &str, timestamp: &str, data: &str) -> String {
