@@ -22,10 +22,26 @@ impl Block {
             index: 0,
             timestamp: timestamp,
             data: String::new(),
-            hash: String::new(),
+            hash: hash,
             previous_hash: String::new()
         }
     }
+}
+
+fn generate_next_block(block_data: &str, last_block: Block) -> Block {
+    let timestamp = SystemTime::now();
+    let hash = calculate_hash(&0, &last_block.hash, &format!("{:?}", timestamp), &String::new());
+    Block {
+        index: 0,
+        timestamp: timestamp,
+        data: String::new(),
+        hash: hash,
+        previous_hash: String::new()
+    }
+}
+
+struct Blockchain {
+    blocks: Vec<Block>
 }
 
 fn calculate_hash(index: &i32, previous_hash: &str, timestamp: &str, data: &str) -> String {
