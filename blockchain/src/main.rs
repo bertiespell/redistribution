@@ -1,6 +1,7 @@
 use openssl::sha;
 use hex;
 use std::time::SystemTime;
+use std::collections::VecDeque;
 
 fn main() {
 }
@@ -42,16 +43,15 @@ fn generate_next_block(block_data: &str, previous_block: &Block) -> Block {
 }
 
 struct Blockchain {
-    blocks: Vec<Block>
+    blocks: VecDeque<Block>
 }
 
 fn is_valid_new_block(new_block: &Block, previous_block: &Block) -> bool {
-    let calculated_has = calculate_hash_for_block(new_block);
     if previous_block.index + 1 != new_block.index {
         return false;
     } else if previous_block.hash != new_block.previous_hash {
         return false;
-    } else if calculated_has != new_block.hash {
+    } else if calculate_hash_for_block(new_block) != new_block.hash {
         return false;
     }
     true
