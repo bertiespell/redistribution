@@ -44,7 +44,18 @@ struct Blockchain {
     blocks: Vec<Block>
 }
 
-fn calculate_hash(index: &i32, previous_hash: &str, timestamp: &str, data: &str) -> String {
+fn is_valid_new_block(new_block: &Block, previous_block: &Block) -> bool {
+    if previous_block.index + 1 != new_block.index {
+        return false;
+    } else if previous_block.hash != new_block.previous_hash {
+        return false;
+    } else if calculate_hash_for_block(new_block) != new_block.hash {
+        return false;
+    }
+    true
+}
+
+fn calculate_hash(index: &u32, previous_hash: &str, timestamp: &str, data: &str) -> String {
     let mut hasher = sha::Sha256::new();
     hasher.update(&index.to_be_bytes());
     hasher.update(&previous_hash.as_bytes());
@@ -53,4 +64,8 @@ fn calculate_hash(index: &i32, previous_hash: &str, timestamp: &str, data: &str)
 
     let hash = hasher.finish();
     hex::encode(hash)
+}
+
+fn calculate_hash_for_block(block: &Block) -> String {
+    calculate_hash(&block.index, &block.previous_hash, &format!("{:?}", block.timestamp), &block.data)
 }
