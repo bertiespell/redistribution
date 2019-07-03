@@ -15,6 +15,12 @@ struct Block {
     previous_hash: String
 }
 
+impl PartialEq for Block {
+    fn eq(&self, other: &Self) -> bool {
+        self.index == other.index && self.timestamp == other.timestamp && self.data == other.data && self.hash == other.hash && self.previous_hash == other.previous_hash
+    }
+}
+
 impl Block {
     fn genesis_block() -> Block {
     let timestamp = format!("{:?}", SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap()); // TODO: handle unwrap properly here
@@ -46,6 +52,24 @@ struct Blockchain {
     blocks: VecDeque<Block>
 }
 
+impl Blockchain {
+    fn new() -> Blockchain {
+        let genesis_block = Block::genesis_block();
+        let mut blocks = VecDeque::new();
+        blocks.push_back(genesis_block);
+
+        Blockchain { 
+            blocks
+        }
+    }
+
+    fn genesis_block(&self) -> Option<&Block> {
+        self.blocks.front()
+    }
+}
+
+
+
 fn is_valid_new_block(new_block: &Block, previous_block: &Block) -> bool {
     if previous_block.index + 1 != new_block.index {
         return false;
@@ -55,6 +79,21 @@ fn is_valid_new_block(new_block: &Block, previous_block: &Block) -> bool {
         return false;
     }
     true
+}
+
+fn is_chain_valid(blockchain: Blockchain, genesis_block: &Block) -> bool {
+    let genesis = blockchain.genesis_block().unwrap(); // TODO: handle the unwrapping error
+    if genesis != genesis_block {
+        return false;
+    }
+    
+    blockchain.blocks
+        .iter()
+        .skip(1)
+        .zip(blockchain.blocks.iter())
+        .map(|(last_block, block)| block.previous_hash == last_block.hash)
+        // Ideally there's a built-in
+        .fold(true, |x, y| x && y)
 }
 
 fn calculate_hash(index: &u32, previous_hash: &str, timestamp: &str, data: &str) -> String {
