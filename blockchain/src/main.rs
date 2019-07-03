@@ -66,6 +66,12 @@ impl Blockchain {
     fn genesis_block(&self) -> Option<&Block> {
         self.blocks.front()
     }
+
+    fn add_block(&mut self, block: Block) {
+        // check that the block is valid here
+        assert!(is_valid_new_block(&block, self.blocks.back().unwrap()));
+        self.blocks.push_back(block);
+    }
 }
 
 
@@ -81,18 +87,13 @@ fn is_valid_new_block(new_block: &Block, previous_block: &Block) -> bool {
     true
 }
 
-fn is_chain_valid(blockchain: Blockchain, genesis_block: &Block) -> bool {
-    let genesis = blockchain.genesis_block().unwrap(); // TODO: handle the unwrapping error
-    if genesis != genesis_block {
-        return false;
-    }
-    
+fn is_chain_valid(blockchain: &Blockchain) -> bool {
+    // TODO: need to check genesis block somehow   
     blockchain.blocks
         .iter()
         .skip(1)
         .zip(blockchain.blocks.iter())
-        .map(|(last_block, block)| block.previous_hash == last_block.hash)
-        // Ideally there's a built-in
+        .map(|(block, last_block)| block.previous_hash == last_block.hash)
         .fold(true, |x, y| x && y)
 }
 
@@ -118,8 +119,24 @@ mod tests {
     #[test]
     fn test_new_block_validity() {
         let genesis_block = Block::genesis_block();
-        let next_block = generate_next_block(&String::from("Test block data!"), &genesis_block);
+        let next_block = generate_next_block("Test block data!", &genesis_block);
         let block_is_valid = is_valid_new_block(&next_block, &genesis_block);
         assert_eq!(block_is_valid, true);
+    }
+
+    #[test]
+    fn test_chain_validity() {
+        let mut blockchain = Blockchain::new();
+        let genesis_block = blockchain.genesis_block().unwrap();
+        let new_block1 = generate_next_block("Block 1", &genesis_block);
+        let new_block2 = generate_next_block("Block 2", &new_block1);
+        let new_block3 = generate_next_block("Block 3", &new_block2);
+
+        blockchain.add_block(new_block1);
+        blockchain.add_block(new_block2);
+        blockchain.add_block(new_block3);
+
+        let validity = is_chain_valid(&blockchain);
+        assert_eq!(validity, true);
     }
 }
