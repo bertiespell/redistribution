@@ -48,7 +48,7 @@ fn generate_next_block(block_data: &str, previous_block: &Block) -> Block {
     }
 }
 
-struct Blockchain {
+pub struct Blockchain {
     blocks: VecDeque<Block>
 }
 
@@ -73,8 +73,6 @@ impl Blockchain {
         self.blocks.push_back(block);
     }
 }
-
-
 
 fn is_valid_new_block(new_block: &Block, previous_block: &Block) -> bool {
     if previous_block.index + 1 != new_block.index {
@@ -110,6 +108,13 @@ fn calculate_hash(index: &u32, previous_hash: &str, timestamp: &str, data: &str)
 
 fn calculate_hash_for_block(block: &Block) -> String {
     calculate_hash(&block.index, &block.previous_hash, &block.timestamp, &block.data)
+}
+
+fn determine_longest_chain<'a>(first_blockchain: &'a Blockchain, second_blockchain: &'a Blockchain) -> &'a Blockchain {
+    if first_blockchain.blocks.back().unwrap().index > second_blockchain.blocks.back().unwrap().index {
+        return first_blockchain;
+    }
+    second_blockchain
 }
 
 #[cfg(test)]
