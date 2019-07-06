@@ -3,9 +3,6 @@ use hex;
 use std::time::SystemTime;
 use std::collections::VecDeque;
 
-fn main() {
-}
-
 #[derive(Clone, Debug)]
 struct Block {
     index: u32, // height of the blockchain

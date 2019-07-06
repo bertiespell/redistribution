@@ -1,7 +1,9 @@
 use std::io::prelude::*;
 use std::net::{TcpListener, TcpStream};
+use blockchain;
 
 fn main() {
+
     let listener = TcpListener::bind("127.0.01:7878").unwrap();
     for stream in listener.incoming() {
         handle_connection(stream.unwrap());
@@ -16,4 +18,14 @@ fn handle_connection(mut stream: TcpStream) {
     let mint_block = b"POST /mintBlock HTTP/1.1\r\n"; // generated next block and send it
     let get_peers = b"GET /peers HTTP/1.1\r\n"; // iterate over sockets
     let add_peer = b"POST /addPeer HTTP/1.1\r\n"; // connect to peers
+
+    if buffer.starts_with(get_blocks) {
+        //
+    } else if buffer.starts_with(mint_block) {
+        //
+    } else if buffer.starts_with(get_peers) {
+        //
+    } else if buffer.starts_with(add_peer) {
+        //
+    }
 }
