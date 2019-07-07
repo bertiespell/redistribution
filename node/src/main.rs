@@ -3,10 +3,17 @@ use std::net::{TcpListener, TcpStream};
 use blockchain;
 
 fn main() {
+    Client::connect();
+}
 
-    let listener = TcpListener::bind("127.0.01:7878").unwrap();
-    for stream in listener.incoming() {
-        handle_connection(stream.unwrap());
+struct Client {}
+
+impl Client {
+    pub fn connect() {
+        let listener = TcpListener::bind("127.0.01:7878").unwrap();
+        for stream in listener.incoming() {
+            handle_connection(stream.unwrap());
+        }     
     }
 }
 
@@ -21,11 +28,14 @@ fn handle_connection(mut stream: TcpStream) {
 
     if buffer.starts_with(get_blocks) {
         //
+        let blockchain = blockchain::Blockchain::new();
+        stream.write(blockchain.as_bytes()).unwrap();
     } else if buffer.starts_with(mint_block) {
         //
     } else if buffer.starts_with(get_peers) {
         //
     } else if buffer.starts_with(add_peer) {
         //
-    }
+    };
+
 }
