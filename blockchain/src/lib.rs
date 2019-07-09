@@ -75,26 +75,26 @@ impl Blockchain {
 }
 
 impl Encodable for Blockchain {
-    fn as_bytes(&self) -> Vec<u8> {
+    fn encode(&self) -> Vec<u8> {
         let serialized = serde_json::to_string(&self).unwrap();
         serialized.into_bytes()
     }
 }
 
 impl Decodable for Blockchain {
-    fn decode(bytes: Vec<u8>) -> Self {
-        let json_string = String::from_utf8(bytes).unwrap();
+    fn decode(&self, bytes: &Vec<u8>) -> Self {
+        let json_string = String::from_utf8(bytes.clone()).unwrap();
         let deserialized: Blockchain = serde_json::from_str(&json_string).unwrap();
         deserialized
     }
 }
 
 pub trait Encodable {
-    fn as_bytes(&self) -> Vec<u8>;
+    fn encode(&self) -> Vec<u8>;
 }
 
 pub trait Decodable: Sized {
-    fn decode(bytes: Vec<u8>) -> Self;
+    fn decode(&self, bytes: &Vec<u8>) -> Self;
 }
 
 fn is_valid_new_block(new_block: &Block, previous_block: &Block) -> bool {
