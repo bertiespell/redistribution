@@ -2,8 +2,10 @@ use openssl::sha;
 use hex;
 use std::time::SystemTime;
 use std::collections::VecDeque;
+use serde::{Serialize, Deserialize};
+use serde_json;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 struct Block {
     index: u32, // height of the blockchain
     timestamp: String,
@@ -45,12 +47,13 @@ fn generate_next_block(block_data: &str, previous_block: &Block) -> Block {
     }
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Blockchain {
     blocks: VecDeque<Block>
 }
 
 impl Blockchain {
-    fn new() -> Blockchain {
+    pub fn new() -> Blockchain {
         let genesis_block = Block::genesis_block();
         let mut blocks = VecDeque::new();
         blocks.push_back(genesis_block);
@@ -69,6 +72,29 @@ impl Blockchain {
         assert!(is_valid_new_block(&block, self.blocks.back().unwrap()));
         self.blocks.push_back(block);
     }
+}
+
+impl Encodable for Blockchain {
+    fn as_bytes(&self) -> Vec<u8> {
+        let serialized = serde_json::to_string(&self).unwrap();
+        serialized.into_bytes()
+    }
+}
+
+impl Decodable for Blockchain {
+    fn decode(bytes: Vec<u8>) -> Self {
+        let json_string = String::from_utf8(bytes).unwrap();
+        let deserialized: Blockchain = serde_json::from_str(&json_string).unwrap();
+        deserialized
+    }
+}
+
+pub trait Encodable {
+    fn as_bytes(&self) -> Vec<u8>;
+}
+
+pub trait Decodable: Sized {
+    fn decode(bytes: Vec<u8>) -> Self;
 }
 
 fn is_valid_new_block(new_block: &Block, previous_block: &Block) -> bool {
