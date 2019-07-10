@@ -14,14 +14,14 @@ impl Config {
             Some(port) => {
                 match port.parse() {
                     Ok(port) => port,
-                    Err(e) => return Err(&format!("Could not parse port number: {}", e))
+                    Err(_e) => return Err("Could not parse port number: {}")
                 }
             },
             None => return Err("Didn't get a port number")
         };
 
         let address = match args.next() {
-            Some(address) => {
+            Some(_address) => {
                 println!("Defaulting to local host..."); // TODO: this should actually use a different port
                 SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), port)
             },
