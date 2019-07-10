@@ -1,6 +1,7 @@
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::env;
 
+#[derive(Clone, Copy)]
 pub struct Config {
     pub address: SocketAddr,
     pub port: u16,

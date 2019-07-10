@@ -10,5 +10,5 @@ fn main() {
         eprintln!("Problem parsing arguments: {}", err);
         process::exit(1)
     });
-    client::Client::new(config.address);
+    client::Client::new(config);
 }

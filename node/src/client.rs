@@ -4,6 +4,7 @@ use blockchain::{Blockchain, Encodable};
 use std::thread;
 use std::sync::{Arc};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use crate::config;
 
 #[derive(Debug)]
 pub struct Client {
@@ -13,7 +14,7 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new(address: SocketAddr) -> Arc<Client> {
+    pub fn new(config: config::Config) -> Arc<Client> {
         let ROOT_NODE: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), 7878); // TODO: The root node should live somewhere more sensible. Maybe a file.
 
         let blockchain = Blockchain::new();
@@ -27,18 +28,18 @@ impl Client {
 
         let copied_client = Arc::clone(&client);
         let thread = thread::spawn(move || {
-            let listener = TcpListener::bind(address).unwrap();
+            let listener = TcpListener::bind(config.address).unwrap();
             for stream in listener.incoming() {
                 Client::handle_incoming(&copied_client, stream.unwrap());
             }
         });
 
-        if address != ROOT_NODE { // TODO: think about whether this should be in a thread - and have a handler as a wrapper
+        if config.address != ROOT_NODE { // TODO: think about whether this should be in a thread - and have a handler as a wrapper
             Client::discover_peers(ROOT_NODE);
         } else {
             println!("Root node initialised.");
         }
-        println!("Client initialised on: {}", &address);
+        println!("Client initialised on: {}", &config.address);
         
         thread.join().unwrap();
 
