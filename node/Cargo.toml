@@ -8,3 +8,5 @@ edition = "2018"
 
 [dependencies]
 blockchain = { path = "../blockchain" }
+openssl = "0.10.23"
+tokio = "0.1"
