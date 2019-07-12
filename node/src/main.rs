@@ -6,6 +6,7 @@ use std::sync::{Arc};
 use std::net::{TcpListener};
 mod client;
 mod config;
+mod protocol_message;
 
 static ROOT_NODE: &str = "127.0.0.1:7878";
 
@@ -36,7 +37,7 @@ fn intialise_listener(client: Arc<client::Client>, config: config::Config) -> Jo
 fn initalise_discovery(client: Arc<client::Client>, config: config::Config) -> JoinHandle<()> {
     thread::spawn(move || {
         if config.address != ROOT_NODE.parse().unwrap() {
-            client.discover_peers(ROOT_NODE.parse().unwrap());
+            client.initialise(ROOT_NODE.parse().unwrap());
         } else {
             println!("Root node initialised.");
         }
