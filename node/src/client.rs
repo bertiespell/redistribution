@@ -1,7 +1,7 @@
 use std::io::prelude::*;
 use std::net::{TcpStream};
 use blockchain::{Blockchain, Encodable};
-use std::sync::{Arc};
+use std::sync::{Arc, Mutex};
 use std::net::{SocketAddr};
 extern crate tokio;
 use crate::protocol_message::ProtocolMessage;
@@ -18,15 +18,15 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new() -> Arc<Client> {
+    pub fn new() -> Arc<Mutex<Client>> {
         let blockchain = Blockchain::new();
         let peers = vec!();
 
-        Arc::new(Client {
+        Arc::new(Mutex::new(Client {
 			id: None,
             blockchain,
             peers,
-        })
+        }))
     }
 
 	pub fn initialise(&self, root: SocketAddr) {
@@ -34,6 +34,8 @@ impl Client {
 		let add_me = ProtocolMessage::AddMe.as_str();
         stream.write(add_me.as_bytes());
         stream.read(&mut [0; 128]);
+
+
         
         //TODO:
 		// send add me message - recieves ID
@@ -58,7 +60,7 @@ impl Client {
         // TODO: Write peers to own hashtable
     }
 
-    pub fn handle_incoming(&self, mut stream: TcpStream) {
+    pub fn handle_incoming(&mut self, mut stream: TcpStream) {
         // TODO: this should parse different messages and route them appropriately
         let mut buffer = [0; 512];
         stream.read(&mut buffer).unwrap();
@@ -85,6 +87,7 @@ impl Client {
             }
 
 			highest_id = highest_id + 1;
+            self.peers.push(highest_id);
             println!("Sending new client id: {}", highest_id);
 			stream.write(&highest_id.to_be_bytes()).unwrap();
             stream.flush().unwrap();
