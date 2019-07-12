@@ -3,7 +3,7 @@ use std::thread;
 use std::thread::{JoinHandle};
 use std::process;
 use std::sync::{Arc, Mutex};
-use std::net::{TcpListener};
+use std::net::{TcpListener, TcpStream};
 mod client;
 mod config;
 mod protocol_message;
@@ -38,8 +38,9 @@ fn intialise_listener(client: Arc<Mutex<client::Client>>, config: config::Config
 fn initalise_discovery(client: Arc<Mutex<client::Client>>, config: config::Config) -> JoinHandle<()> {
     thread::spawn(move || {
         if config.address != ROOT_NODE.parse().unwrap() {
+            let stream = TcpStream::connect(ROOT_NODE).unwrap();
             let client = client.lock().unwrap();
-            client.initialise(ROOT_NODE.parse().unwrap());
+            client.initialise(stream);
         } else {
             // TODO: the root node needs an ID!
             println!("Root node initialised.");

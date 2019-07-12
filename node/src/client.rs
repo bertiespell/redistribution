@@ -29,14 +29,17 @@ impl Client {
         }))
     }
 
-	pub fn initialise(&self, root: SocketAddr) {
-		let mut stream = TcpStream::connect(root).unwrap();
+	pub fn initialise(&self, mut stream: TcpStream) {
 		let add_me = ProtocolMessage::AddMe.as_str();
         stream.write(add_me.as_bytes());
-        stream.read(&mut [0; 128]);
+        stream.flush().unwrap();
+        let mut buffer = vec!();
+        let result = stream.read_to_end(&mut buffer);
+        match result {
+            Ok(n) => println!("Received {:?} bytes",n),
+            _ => {},
+        }
 
-
-        
         //TODO:
 		// send add me message - recieves ID
 		// ORIGINAL/ROOT node - adds ID to list and broadcasts result to everyone
@@ -57,6 +60,7 @@ impl Client {
         let get_peers = ProtocolMessage::GetPeers.as_str();
         stream.write(get_peers.as_bytes());
         stream.read(&mut [0; 128]);
+        println!("Peers received: {}", get_peers);
         // TODO: Write peers to own hashtable
     }
 
