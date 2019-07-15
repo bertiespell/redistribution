@@ -39,7 +39,7 @@ fn initalise_discovery(client: Arc<Mutex<client::Client>>, config: config::Confi
     thread::spawn(move || {
         if config.address != ROOT_NODE.parse().unwrap() {
             let stream = TcpStream::connect(ROOT_NODE).unwrap();
-            let client = client.lock().unwrap();
+            let mut client = client.lock().unwrap();
             client.initialise(stream);
         } else {
             // TODO: the root node needs an ID!

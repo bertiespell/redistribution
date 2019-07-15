@@ -1,8 +1,12 @@
 use std::io::prelude::*;
+use std::io::Result;
 use std::net::{TcpStream};
 use blockchain::{Blockchain, Encodable};
 use std::sync::{Arc, Mutex};
+use std::cell::{RefCell, RefMut};
+
 use std::net::{SocketAddr};
+use std::rc::Rc;
 extern crate tokio;
 use crate::protocol_message::ProtocolMessage;
 
@@ -29,39 +33,45 @@ impl Client {
         }))
     }
 
-	pub fn initialise(&self, mut stream: TcpStream) {
-		let add_me = ProtocolMessage::AddMe.as_str();
-        stream.write(add_me.as_bytes());
-        stream.flush().unwrap();
-        let mut buffer = vec!();
-        let result = stream.read_to_end(&mut buffer);
-        match result {
-            Ok(n) => println!("Received {:?} bytes",n),
-            _ => {},
-        }
-
-        //TODO:
-		// send add me message - recieves ID
-		// ORIGINAL/ROOT node - adds ID to list and broadcasts result to everyone
-		// New peer with new ID asks for list of nodes...
-		// sends back peers
+	pub fn initialise(&mut self, mut stream: TcpStream) -> Result<()> {
+		let rc_stream = Rc::new(RefCell::new(stream));
+        self.add_me(rc_stream.borrow_mut())?;
+        self.get_peers(rc_stream.borrow_mut())?; // TODO: needs some async stuff here...
+        Ok(())
 	}
 
     // TODO: All these tcp streams are repeated - they should be in a wrapper? Using Tokio maybe?
-    fn add_me(&self, root: SocketAddr) {
-        let mut stream = TcpStream::connect(root).unwrap();
-		let add_me = ProtocolMessage::AddMe.as_str();
-        stream.write(add_me.as_bytes());
-        stream.read(&mut [0; 128]);
+    fn add_me(&mut self, mut stream: RefMut<TcpStream>) -> Result<()> {
+        let add_me = ProtocolMessage::AddMe.as_str();
+        stream.write(add_me.as_bytes())?;
+
+        let mut buffer = [0; 16];
+        let result = stream.read(&mut buffer);
+        match result {
+            Ok(_) => {
+                let node_id = u128::from_be_bytes(buffer);
+                self.id = Some(node_id);
+                println!("Received ID: {:?}", &node_id);
+                Ok(())
+            },
+            Err(e) => Err(e),
+        }
     }
 
-    fn get_peers(&self, root: SocketAddr) {
-        let mut stream = TcpStream::connect(root).unwrap();
-        let get_peers = ProtocolMessage::GetPeers.as_str();
-        stream.write(get_peers.as_bytes());
-        stream.read(&mut [0; 128]);
-        println!("Peers received: {}", get_peers);
-        // TODO: Write peers to own hashtable
+    fn get_peers(&mut self, mut stream: RefMut<TcpStream>) -> Result<()> {
+        let add_me = ProtocolMessage::GetPeers.as_str();
+        stream.write(add_me.as_bytes())?;
+
+        let mut buffer = vec!();
+        let result = stream.read_to_end(&mut buffer);
+        match result {
+            Ok(_) => {
+                // decode buffer - serialisatble structure
+                println!("Received Peers: {:?}", &buffer);
+                Ok(())
+            },
+            Err(e) => Err(e),
+        }
     }
 
     pub fn handle_incoming(&mut self, mut stream: TcpStream) {
@@ -77,6 +87,7 @@ impl Client {
         } else if buffer.starts_with(ProtocolMessage::MintBlock.as_str().as_bytes()) {
             //
         } else if buffer.starts_with(ProtocolMessage::GetPeers.as_str().as_bytes()) {
+            // check that the node is known
             // check the node is known in hash table...
             // send back list of peers
         } else if buffer.starts_with(ProtocolMessage::AddMe.as_str().as_bytes()) {
@@ -92,9 +103,9 @@ impl Client {
 
 			highest_id = highest_id + 1;
             self.peers.push(highest_id);
-            println!("Sending new client id: {}", highest_id);
+            println!("Sending new client id: {:?}", &highest_id);
 			stream.write(&highest_id.to_be_bytes()).unwrap();
-            stream.flush().unwrap();
+            // TODO: Broadcast new node to network?
         }
     }
 }
