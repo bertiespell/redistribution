@@ -10,3 +10,6 @@ edition = "2018"
 blockchain = { path = "../blockchain" }
 openssl = "0.10.23"
 tokio = "0.1"
+hex = "0.3.2"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"

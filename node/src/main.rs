@@ -7,6 +7,7 @@ use std::net::{TcpListener, TcpStream};
 mod client;
 mod config;
 mod protocol_message;
+mod parser;
 
 static ROOT_NODE: &str = "127.0.0.1:7878";
 

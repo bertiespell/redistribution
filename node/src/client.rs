@@ -1,9 +1,11 @@
 use std::io::prelude::*;
 use std::io::Result;
 use std::net::{TcpStream};
-use blockchain::{Blockchain, Encodable};
+use blockchain::{Blockchain, Encodable, Decodable};
 use std::sync::{Arc, Mutex};
 use std::cell::{RefCell, RefMut};
+use serde::{Serialize, Deserialize};
+use serde_json;
 
 use std::net::{SocketAddr};
 use std::rc::Rc;
@@ -14,11 +16,17 @@ use tokio::io;
 use tokio::net::TcpListener;
 use tokio::prelude::*;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Client {
 	id: Option<u128>,
     blockchain: Blockchain,
     peers: Vec<u128>, // list of IDs
+}
+
+fn parse_buffer(buffer: &[u8]) -> (&[u8], &[u8]) {
+    let opcode = &buffer[0..4];
+    let data = &buffer[4..];
+    return (opcode, data);
 }
 
 impl Client {
@@ -59,11 +67,21 @@ impl Client {
     }
 
     fn get_peers(&mut self, mut stream: RefMut<TcpStream>) -> Result<()> {
-        let add_me = ProtocolMessage::GetPeers.as_str();
-        stream.write(add_me.as_bytes())?;
+        let mut newer_thing = vec![ProtocolMessage::GetPeers.as_str()];
+        let serialised_value = serde_json::to_string(&self.id.unwrap()).unwrap();
+        newer_thing.push(&serialised_value);
+        
+        let byte_array = newer_thing
+            .into_iter()
+            .map(|astring| astring.as_bytes().to_owned())
+            .flatten()
+            .collect::<Vec<_>>();
+
+        stream.write(&byte_array[..])?;
 
         let mut buffer = vec!();
         let result = stream.read_to_end(&mut buffer);
+        println!("Got peers: {:?}", buffer);
         match result {
             Ok(_) => {
                 // decode buffer - serialisatble structure
@@ -79,15 +97,20 @@ impl Client {
         let mut buffer = [0; 512];
         stream.read(&mut buffer).unwrap();
 
+        let (opcode, data) = parse_buffer(&buffer);
+        println!("OPCODE: {:?}, DATA: {:?}", opcode, data);
+
         if buffer.starts_with(ProtocolMessage::GetBlocks.as_str().as_bytes()) {
             let blocks = self.blockchain.encode();
-            println!("Received get request. Sending: {:?}", &blocks);
+            println!("Sending blocks {:?}", &blocks);
             stream.write(&blocks).unwrap();
             stream.flush().unwrap();
         } else if buffer.starts_with(ProtocolMessage::MintBlock.as_str().as_bytes()) {
             //
         } else if buffer.starts_with(ProtocolMessage::GetPeers.as_str().as_bytes()) {
+            println!("Received get peers request");
             // check that the node is known
+            // Get Node ID from the buffer...
             // check the node is known in hash table...
             // send back list of peers
         } else if buffer.starts_with(ProtocolMessage::AddMe.as_str().as_bytes()) {
