@@ -100,20 +100,20 @@ impl Client {
         let (opcode, data) = parse_buffer(&buffer);
         println!("OPCODE: {:?}, DATA: {:?}", opcode, data);
 
-        if buffer.starts_with(ProtocolMessage::GetBlocks.as_str().as_bytes()) {
+        if buffer.starts_with(ProtocolMessage::GetBlocks.as_bytes()) {
             let blocks = self.blockchain.encode();
             println!("Sending blocks {:?}", &blocks);
             stream.write(&blocks).unwrap();
             stream.flush().unwrap();
-        } else if buffer.starts_with(ProtocolMessage::MintBlock.as_str().as_bytes()) {
+        } else if buffer.starts_with(ProtocolMessage::MintBlock.as_bytes()) {
             //
-        } else if buffer.starts_with(ProtocolMessage::GetPeers.as_str().as_bytes()) {
+        } else if buffer.starts_with(ProtocolMessage::GetPeers.as_bytes()) {
             println!("Received get peers request");
             // check that the node is known
             // Get Node ID from the buffer...
             // check the node is known in hash table...
             // send back list of peers
-        } else if buffer.starts_with(ProtocolMessage::AddMe.as_str().as_bytes()) {
+        } else if buffer.starts_with(ProtocolMessage::AddMe.as_bytes()) {
 			// TODO: ensure we're using UUID. Here we just use an incrementing ID - ideally in the future one node won't store *all* other nodes in its peers... so we'll need a smarter system
 			let mut highest_id: u128 = 0;
 			let mut peers = self.peers.iter();
