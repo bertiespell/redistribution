@@ -4,6 +4,9 @@ use std::thread::{JoinHandle};
 use std::process;
 use std::sync::{Arc, Mutex};
 use std::net::{TcpListener, TcpStream};
+use std::cell::{RefCell, RefMut};
+use std::rc::Rc;
+
 mod client;
 mod config;
 mod protocol_message;
@@ -39,9 +42,21 @@ fn intialise_listener(client: Arc<Mutex<client::Client>>, config: config::Config
 fn initalise_discovery(client: Arc<Mutex<client::Client>>, config: config::Config) -> JoinHandle<()> {
     thread::spawn(move || {
         if config.address != ROOT_NODE.parse().unwrap() {
-            let stream = TcpStream::connect(ROOT_NODE).unwrap();
             let mut client = client.lock().unwrap();
-            client.initialise(stream);
+            let add_me_stream = TcpStream::connect(ROOT_NODE).unwrap();
+            let initialised_client = client.add_me(add_me_stream);
+            match initialised_client {
+                Ok(_) => {
+                    let get_peers_stream = TcpStream::connect(ROOT_NODE).unwrap();
+                    let peers_found = client.get_peers(get_peers_stream);
+                    match peers_found {
+                        Ok(_) => {},
+                        Err(e) => eprintln!("Failed to get list of peers: {}", e)
+                    }
+                },
+                Err(e) => eprintln!("Failed to connect to root: {}", e)
+            }
+            
         } else {
             // TODO: the root node needs an ID!
             println!("Root node initialised.");

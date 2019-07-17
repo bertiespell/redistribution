@@ -41,15 +41,7 @@ impl Client {
         }))
     }
 
-	pub fn initialise(&mut self, mut stream: TcpStream) -> Result<()> {
-		let rc_stream = Rc::new(RefCell::new(stream));
-        self.add_me(rc_stream.borrow_mut())?;
-        self.get_peers(rc_stream.borrow_mut())?; // TODO: needs some async stuff here...
-        Ok(())
-	}
-
-    // TODO: All these tcp streams are repeated - they should be in a wrapper? Using Tokio maybe?
-    fn add_me(&mut self, mut stream: RefMut<TcpStream>) -> Result<()> {
+    pub fn add_me(&mut self, mut stream: TcpStream) -> Result<()> {
         let add_me = ProtocolMessage::AddMe.as_str();
         stream.write(add_me.as_bytes())?;
 
@@ -66,7 +58,7 @@ impl Client {
         }
     }
 
-    fn get_peers(&mut self, mut stream: RefMut<TcpStream>) -> Result<()> {
+    pub fn get_peers(&mut self, mut stream: TcpStream) -> Result<()> {
         let mut newer_thing = vec![ProtocolMessage::GetPeers.as_str()];
         let serialised_value = serde_json::to_string(&self.id.unwrap()).unwrap();
         newer_thing.push(&serialised_value);
@@ -81,7 +73,6 @@ impl Client {
 
         let mut buffer = vec!();
         let result = stream.read_to_end(&mut buffer);
-        println!("Got peers: {:?}", buffer);
         match result {
             Ok(_) => {
                 // decode buffer - serialisatble structure
