@@ -5,7 +5,7 @@ use std::process;
 use std::sync::{Arc, Mutex};
 use std::net::{TcpListener, TcpStream};
 
-mod client;
+mod node;
 mod config;
 mod protocol_message;
 mod parser;
@@ -17,36 +17,36 @@ fn main() {
         eprintln!("Problem parsing arguments: {}", err);
         process::exit(1)
     });
-    let client = client::Client::new();
+    let node = node::Node::new();
 
-    let listener_thread = intialise_listener(Arc::clone(&client), config);
-    let discovery_thread = initalise_discovery(Arc::clone(&client), config);
+    let listener_thread = intialise_listener(Arc::clone(&node), config);
+    let discovery_thread = initalise_discovery(Arc::clone(&node), config);
     discovery_thread.join().unwrap();
     listener_thread.join().unwrap();
 }
 
 /// Starts a listener thread and waits
-fn intialise_listener(client: Arc<Mutex<client::Client>>, config: config::Config) -> JoinHandle<()> {
+fn intialise_listener(node: Arc<Mutex<node::Node>>, config: config::Config) -> JoinHandle<()> {
     thread::spawn(move || {
         let listener = TcpListener::bind(config.address).unwrap();
         for stream in listener.incoming() {
-            let mut client = client.lock().unwrap();
-            client.handle_incoming(stream.unwrap());
+            let mut node = node.lock().unwrap();
+            node.handle_incoming(stream.unwrap());
         }
     })
 }
 
 /// startes a thread to discover peers
-fn initalise_discovery(client: Arc<Mutex<client::Client>>, config: config::Config) -> JoinHandle<()> {
+fn initalise_discovery(node: Arc<Mutex<node::Node>>, config: config::Config) -> JoinHandle<()> {
     thread::spawn(move || {
         if config.address != ROOT_NODE.parse().unwrap() {
-            let mut client = client.lock().unwrap();
+            let mut node = node.lock().unwrap();
             let add_me_stream = TcpStream::connect(ROOT_NODE).unwrap();
-            let initialised_client = client.add_me(add_me_stream);
-            match initialised_client {
+            let initialised_node = node.add_me(add_me_stream);
+            match initialised_node {
                 Ok(_) => {
                     let get_peers_stream = TcpStream::connect(ROOT_NODE).unwrap();
-                    let peers_found = client.get_peers(get_peers_stream);
+                    let peers_found = node.get_peers(get_peers_stream);
                     match peers_found {
                         Ok(_) => {},
                         Err(e) => eprintln!("Failed to get list of peers: {}", e)

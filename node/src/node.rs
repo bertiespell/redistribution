@@ -11,18 +11,18 @@ use std::net::{SocketAddr};
 use crate::protocol_message::ProtocolMessage;
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Client {
+pub struct Node {
 	id: Option<u128>,
     blockchain: Blockchain,
     peers: HashMap<u128, SocketAddr>, // list of IDs
 }
 
-impl Client {
-    pub fn new() -> Arc<Mutex<Client>> {
+impl Node {
+    pub fn new() -> Arc<Mutex<Node>> {
         let blockchain = Blockchain::new();
         let peers = HashMap::new();
 
-        Arc::new(Mutex::new(Client {
+        Arc::new(Mutex::new(Node {
 			id: None,
             blockchain,
             peers,
@@ -88,7 +88,7 @@ impl Client {
 
                 highest_id = highest_id + 1;
                 self.peers.insert(highest_id, node_addr);
-                println!("Sending new client id: {:?}", &highest_id);
+                println!("Sending new node id: {:?}", &highest_id);
                 stream.write(&highest_id.to_be_bytes()).unwrap();
                 // TODO: Broadcast new node to network?
             },
