@@ -1,20 +1,12 @@
 use std::io::prelude::*;
 use std::io::Result;
 use std::net::{TcpStream};
-use blockchain::{Blockchain, Encodable, Decodable};
+use blockchain::{Blockchain, Encodable};
 use std::sync::{Arc, Mutex};
-use std::cell::{RefCell, RefMut};
 use serde::{Serialize, Deserialize};
 use serde_json;
 
-use std::net::{SocketAddr};
-use std::rc::Rc;
-extern crate tokio;
 use crate::protocol_message::ProtocolMessage;
-
-use tokio::io;
-use tokio::net::TcpListener;
-use tokio::prelude::*;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Client {
@@ -59,24 +51,19 @@ impl Client {
     }
 
     pub fn get_peers(&mut self, mut stream: TcpStream) -> Result<()> {
-        let mut newer_thing = vec![ProtocolMessage::GetPeers.as_str()];
-        let serialised_value = serde_json::to_string(&self.id.unwrap()).unwrap();
-        newer_thing.push(&serialised_value);
-        
-        let byte_array = newer_thing
-            .into_iter()
-            .map(|astring| astring.as_bytes().to_owned())
-            .flatten()
-            .collect::<Vec<_>>();
+        let message = build_message(ProtocolMessage::GetPeers, &self.id.unwrap());
 
-        stream.write(&byte_array[..])?;
+        stream.write(&message[..])?;
 
         let mut buffer = vec!();
         let result = stream.read_to_end(&mut buffer);
         match result {
             Ok(_) => {
                 // decode buffer - serialisatble structure
-                println!("Received Peers: {:?}", &buffer);
+                let decoded_JSON = String::from_utf8(buffer).unwrap();
+                let peers: Vec<u128> = serde_json::from_str(&decoded_JSON).unwrap();
+                self.peers = peers;
+                println!("Received Peers: {:?}", &self.peers);
                 Ok(())
             },
             Err(e) => Err(e),
@@ -104,6 +91,9 @@ impl Client {
             // Get Node ID from the buffer...
             // check the node is known in hash table...
             // send back list of peers
+            let peers = serde_json::to_string(&self.peers).unwrap();
+            stream.write(&peers.as_bytes()).unwrap();
+            stream.flush().unwrap();
         } else if buffer.starts_with(ProtocolMessage::AddMe.as_bytes()) {
 			// TODO: ensure we're using UUID. Here we just use an incrementing ID - ideally in the future one node won't store *all* other nodes in its peers... so we'll need a smarter system
 			let mut highest_id: u128 = 0;
@@ -122,4 +112,19 @@ impl Client {
             // TODO: Broadcast new node to network?
         }
     }
+}
+
+fn build_message<T: ?Sized>(opcode: ProtocolMessage, message: &T) -> Vec<u8>
+where
+    T: Serialize
+{
+    let mut op_code = vec![opcode.as_str()];
+    let serialised_value = serde_json::to_string(message).unwrap();
+    op_code.push(&serialised_value);
+    
+    op_code
+        .into_iter()
+        .map(|astring| astring.as_bytes().to_owned())
+        .flatten()
+        .collect::<Vec<_>>()
 }
