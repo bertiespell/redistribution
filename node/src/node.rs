@@ -81,7 +81,7 @@ impl Node {
         let mut parser = Parser::new(buffer);
 
         match parser.opcode() {
-            ProtocolMessage::AddMe => {
+            Ok(ProtocolMessage::AddMe) => {
                 // TODO: ensure we're using UUID. Here we just use an incrementing ID - ideally in the future one node won't store *all* other nodes in its peers... so we'll need a smarter system
                 let node_addr = stream.peer_addr().unwrap();
                 let mut highest_id: u128 = 0;
@@ -99,7 +99,7 @@ impl Node {
                 stream.write(&highest_id.to_be_bytes()).unwrap();
                 // TODO: Broadcast new node to network?
             },
-            ProtocolMessage::GetPeers => {
+            Ok(ProtocolMessage::GetPeers) => {
                 let peer = parser.peer_id();
                 assert!(self.peers.contains_key(&peer));
                 if self.peers.contains_key(&peer) {
@@ -112,14 +112,14 @@ impl Node {
                     stream.shutdown(Shutdown::Both).unwrap_or_else(|_| println!("Failed to close connection for unrecognised peer"));
                 }
             },
-            ProtocolMessage::GetBlocks => {
+            Ok(ProtocolMessage::GetBlocks) => {
                 let blocks = self.blockchain.encode();
                 println!("Sending blocks {:?}", &blocks);
                 stream.write(&blocks).unwrap();
                 stream.flush().unwrap();
             },
-            ProtocolMessage::MintBlock => {},
-            _ => println!("Received unknown opcode")
+            Ok(ProtocolMessage::MintBlock) => {},
+            Err(_) => { println!("Received unknown opcode")}
         }
     }
 }
