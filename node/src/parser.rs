@@ -39,7 +39,7 @@ impl Parser {
 
     pub fn build_raw_message<'a>(opcode: ProtocolMessage, message: &'a Vec<u8>) -> Vec<u8> {
         let mut newer = vec!();
-        ProtocolMessage::GetPeers.as_bytes().iter().for_each(|x|{newer.push(*x)});
+        opcode.as_bytes().iter().for_each(|x|{newer.push(*x)});
         message.iter().for_each(|x|{newer.push(*x)});
         newer
     }
