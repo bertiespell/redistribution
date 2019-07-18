@@ -5,6 +5,8 @@ use blockchain::{Blockchain, Encodable};
 use std::sync::{Arc, Mutex};
 use serde::{Serialize, Deserialize};
 use serde_json;
+use std::collections::HashMap;
+use std::net::{SocketAddr};
 
 use crate::protocol_message::ProtocolMessage;
 
@@ -12,7 +14,7 @@ use crate::protocol_message::ProtocolMessage;
 pub struct Client {
 	id: Option<u128>,
     blockchain: Blockchain,
-    peers: Vec<u128>, // list of IDs
+    peers: HashMap<u128, SocketAddr>, // list of IDs
 }
 
 fn parse_buffer(buffer: &[u8]) -> (&[u8], &[u8]) {
@@ -24,7 +26,7 @@ fn parse_buffer(buffer: &[u8]) -> (&[u8], &[u8]) {
 impl Client {
     pub fn new() -> Arc<Mutex<Client>> {
         let blockchain = Blockchain::new();
-        let peers = vec!();
+        let peers = HashMap::new();
 
         Arc::new(Mutex::new(Client {
 			id: None,
@@ -60,8 +62,8 @@ impl Client {
         match result {
             Ok(_) => {
                 // decode buffer - serialisatble structure
-                let decoded_JSON = String::from_utf8(buffer).unwrap();
-                let peers: Vec<u128> = serde_json::from_str(&decoded_JSON).unwrap();
+                let decoded_json = String::from_utf8(buffer).unwrap();
+                let peers: HashMap<u128, SocketAddr> = serde_json::from_str(&decoded_json).unwrap();
                 self.peers = peers;
                 println!("Received Peers: {:?}", &self.peers);
                 Ok(())
@@ -85,7 +87,7 @@ impl Client {
         } else if opcode == ProtocolMessage::MintBlock.as_bytes() {
             //
         } else if opcode == ProtocolMessage::GetPeers.as_bytes() {
-            println!("Received get peers request");
+            println!("Received get peers request: {:?}", data);
             // check that the node is known
             // Get Node ID from the buffer...
             // check the node is known in hash table...
@@ -95,17 +97,18 @@ impl Client {
             stream.flush().unwrap();
         } else if opcode == ProtocolMessage::AddMe.as_bytes() {
 			// TODO: ensure we're using UUID. Here we just use an incrementing ID - ideally in the future one node won't store *all* other nodes in its peers... so we'll need a smarter system
+            let node_addr = stream.peer_addr().unwrap();
 			let mut highest_id: u128 = 0;
 			let mut peers = self.peers.iter();
 
-            while let Some(peer_id) = peers.next() {
+            while let Some((peer_id, addr)) = peers.next() {
                 if highest_id < *peer_id {
                     highest_id = *peer_id;
                 }
             }
 
 			highest_id = highest_id + 1;
-            self.peers.push(highest_id);
+            self.peers.insert(highest_id, node_addr);
             println!("Sending new client id: {:?}", &highest_id);
 			stream.write(&highest_id.to_be_bytes()).unwrap();
             // TODO: Broadcast new node to network?
