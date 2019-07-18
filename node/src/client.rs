@@ -47,7 +47,7 @@ impl Client {
     }
 
     pub fn get_peers(&mut self, mut stream: TcpStream) -> Result<()> {
-        let message = build_message(ProtocolMessage::GetPeers, &self.id.unwrap());
+        let message = Parser::build_message(ProtocolMessage::GetPeers, &self.id.unwrap());
 
         println!("Sending: {:?}", &message[..]);
         stream.write(&message[..])?;
@@ -127,6 +127,21 @@ impl Parser {
         }
     }
 
+    fn build_message<T: ?Sized>(opcode: ProtocolMessage, message: &T) -> Vec<u8>
+    where
+        T: Serialize
+    {
+        let mut op_code = vec![opcode.as_str()];
+        let serialised_value = serde_json::to_string(message).unwrap();
+        op_code.push(&serialised_value);
+        
+        op_code
+            .into_iter()
+            .map(|astring| astring.as_bytes().to_owned())
+            .flatten()
+            .collect::<Vec<_>>()
+    }
+
     pub fn opcode(&mut self) -> ProtocolMessage {
         let mut opcode = [0; 4];
         opcode.swap_with_slice(&mut self.raw_bytes[..4]);
@@ -147,19 +162,4 @@ impl Parser {
         bytes_id.swap_with_slice(&mut self.raw_bytes[4..20]);
         u128::from_le_bytes(bytes_id)
     }
-}
-
-fn build_message<T: ?Sized>(opcode: ProtocolMessage, message: &T) -> Vec<u8>
-where
-    T: Serialize
-{
-    let mut op_code = vec![opcode.as_str()];
-    let serialised_value = serde_json::to_string(message).unwrap();
-    op_code.push(&serialised_value);
-    
-    op_code
-        .into_iter()
-        .map(|astring| astring.as_bytes().to_owned())
-        .flatten()
-        .collect::<Vec<_>>()
 }
