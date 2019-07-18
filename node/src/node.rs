@@ -48,7 +48,13 @@ impl Node {
     }
 
     pub fn get_peers(&mut self, mut stream: TcpStream) -> Result<()> {
-        let message = Parser::build_message(ProtocolMessage::GetPeers, &self.id.unwrap());
+
+        let mut message = vec!();
+        let peer_id = self.id.unwrap().to_be_bytes();
+        ProtocolMessage::GetPeers.as_bytes().iter().for_each(|x|{message.push(*x)});
+        peer_id.iter().for_each(|x|{message.push(*x)});
+
+        Parser::build_raw_message(ProtocolMessage::GetPeers, &self.id.unwrap().to_be_bytes().to_vec());
 
         println!("Sending: {:?}", &message[..]);
         stream.write(&message[..])?;
