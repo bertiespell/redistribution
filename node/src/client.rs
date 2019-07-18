@@ -17,12 +17,6 @@ pub struct Client {
     peers: HashMap<u128, SocketAddr>, // list of IDs
 }
 
-fn parse_buffer(buffer: &[u8]) -> (&[u8], &[u8]) {
-    let opcode = &buffer[0..4];
-    let data = &buffer[4..];
-    return (opcode, data);
-}
-
 impl Client {
     pub fn new() -> Arc<Mutex<Client>> {
         let blockchain = Blockchain::new();
@@ -55,6 +49,7 @@ impl Client {
     pub fn get_peers(&mut self, mut stream: TcpStream) -> Result<()> {
         let message = build_message(ProtocolMessage::GetPeers, &self.id.unwrap());
 
+        println!("Sending: {:?}", &message[..]);
         stream.write(&message[..])?;
 
         let mut buffer = vec!();
@@ -73,46 +68,84 @@ impl Client {
     }
 
     pub fn handle_incoming(&mut self, mut stream: TcpStream) {
-        // TODO: this should parse different messages and route them appropriately
         let mut buffer = [0; 512];
         stream.read(&mut buffer).unwrap();
 
-        let (opcode, data) = parse_buffer(&buffer);
+        let mut parser = Parser::new(buffer);
 
-        if opcode == ProtocolMessage::GetBlocks.as_bytes() {
-            let blocks = self.blockchain.encode();
-            println!("Sending blocks {:?}", &blocks);
-            stream.write(&blocks).unwrap();
-            stream.flush().unwrap();
-        } else if opcode == ProtocolMessage::MintBlock.as_bytes() {
-            //
-        } else if opcode == ProtocolMessage::GetPeers.as_bytes() {
-            println!("Received get peers request: {:?}", data);
-            // check that the node is known
-            // Get Node ID from the buffer...
-            // check the node is known in hash table...
-            // send back list of peers
-            let peers = serde_json::to_string(&self.peers).unwrap();
-            stream.write(&peers.as_bytes()).unwrap();
-            stream.flush().unwrap();
-        } else if opcode == ProtocolMessage::AddMe.as_bytes() {
-			// TODO: ensure we're using UUID. Here we just use an incrementing ID - ideally in the future one node won't store *all* other nodes in its peers... so we'll need a smarter system
-            let node_addr = stream.peer_addr().unwrap();
-			let mut highest_id: u128 = 0;
-			let mut peers = self.peers.iter();
+        match parser.opcode() {
+            ProtocolMessage::AddMe => {
+                // TODO: ensure we're using UUID. Here we just use an incrementing ID - ideally in the future one node won't store *all* other nodes in its peers... so we'll need a smarter system
+                let node_addr = stream.peer_addr().unwrap();
+                let mut highest_id: u128 = 0;
+                let mut peers = self.peers.iter();
 
-            while let Some((peer_id, addr)) = peers.next() {
-                if highest_id < *peer_id {
-                    highest_id = *peer_id;
+                while let Some((peer_id, _)) = peers.next() {
+                    if highest_id < *peer_id {
+                        highest_id = *peer_id;
+                    }
                 }
-            }
 
-			highest_id = highest_id + 1;
-            self.peers.insert(highest_id, node_addr);
-            println!("Sending new client id: {:?}", &highest_id);
-			stream.write(&highest_id.to_be_bytes()).unwrap();
-            // TODO: Broadcast new node to network?
+                highest_id = highest_id + 1;
+                self.peers.insert(highest_id, node_addr);
+                println!("Sending new client id: {:?}", &highest_id);
+                stream.write(&highest_id.to_be_bytes()).unwrap();
+                // TODO: Broadcast new node to network?
+            },
+            ProtocolMessage::GetPeers => {
+                let peer = parser.peer_id();
+                println!("Received GetPeer request from: {}", peer);
+                // TODO: Check peer is in table
+                let peers = serde_json::to_string(&self.peers).unwrap();
+                stream.write(&peers.as_bytes()).unwrap();
+                stream.flush().unwrap();
+            },
+            ProtocolMessage::GetBlocks => {
+                let blocks = self.blockchain.encode();
+                println!("Sending blocks {:?}", &blocks);
+                stream.write(&blocks).unwrap();
+                stream.flush().unwrap();
+            },
+            ProtocolMessage::MintBlock => {},
+            _ => println!("Received unknown opcode")
         }
+    }
+}
+
+struct Parser { 
+    raw_bytes: [u8; 512]
+}
+
+/// Assumes messages apply to format
+/// 4 bytes - opcode
+/// 16 bytes - peer_id
+/// ...
+impl Parser {
+    pub fn new(raw_bytes: [u8; 512]) -> Parser {
+        Parser {
+            raw_bytes
+        }
+    }
+
+    pub fn opcode(&mut self) -> ProtocolMessage {
+        let mut opcode = [0; 4];
+        opcode.swap_with_slice(&mut self.raw_bytes[..4]);
+        if opcode == ProtocolMessage::GetBlocks.as_bytes() {
+            return ProtocolMessage::GetBlocks;
+        } else if opcode == ProtocolMessage::AddMe.as_bytes() {
+            return ProtocolMessage::AddMe;
+        } else if opcode == ProtocolMessage::GetPeers.as_bytes() {
+            return ProtocolMessage::GetPeers;
+        } else if opcode == ProtocolMessage::MintBlock.as_bytes() {
+            return ProtocolMessage::MintBlock;
+        }
+        panic!()
+    }
+
+    pub fn peer_id(&mut self) -> u128 {
+        let mut bytes_id = [0; 16];
+        bytes_id.swap_with_slice(&mut self.raw_bytes[4..20]);
+        u128::from_le_bytes(bytes_id)
     }
 }
 
