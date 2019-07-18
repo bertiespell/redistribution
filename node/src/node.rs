@@ -1,6 +1,6 @@
 use std::io::prelude::*;
 use std::io::Result;
-use std::net::{TcpStream};
+use std::net::{TcpStream, Shutdown};
 use blockchain::{Blockchain, Encodable};
 use std::sync::{Arc, Mutex};
 use serde::{Serialize, Deserialize};
@@ -101,11 +101,16 @@ impl Node {
             },
             ProtocolMessage::GetPeers => {
                 let peer = parser.peer_id();
-                println!("Received GetPeer request from: {}", peer);
-                // TODO: Check peer is in table
-                let peers = serde_json::to_string(&self.peers).unwrap();
-                stream.write(&peers.as_bytes()).unwrap();
-                stream.flush().unwrap();
+                assert!(self.peers.contains_key(&peer));
+                if self.peers.contains_key(&peer) {
+                    println!("Received GetPeer request from: {}", peer);
+                    let peers = serde_json::to_string(&self.peers).unwrap();
+                    stream.write(&peers.as_bytes()).unwrap();
+                    stream.flush().unwrap();
+                } else {
+                    println!("Peer not recognised");
+                    stream.shutdown(Shutdown::Both).unwrap_or_else(|_| println!("Failed to close connection for unrecognised peer"));
+                }
             },
             ProtocolMessage::GetBlocks => {
                 let blocks = self.blockchain.encode();
