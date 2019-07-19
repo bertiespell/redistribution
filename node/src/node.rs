@@ -75,6 +75,10 @@ impl Node {
         let message = Parser::build_message(ProtocolMessage::MineBlock, &self.id.unwrap().to_be_bytes().to_vec(), &json.as_bytes().to_vec());
         println!("Sending transations: {:?}", &message[..]);
         stream.write(&message[..]);
+        let mut buffer = [0; 16];
+        let result = stream.read(&mut buffer);
+        // TODO: do something with mined block.
+        println!("Received new block: {:?}", buffer);
     }
 
     pub fn handle_incoming(&mut self, mut stream: TcpStream) {
@@ -127,7 +131,9 @@ impl Node {
 
                 let new_block = self.blockchain.generate_next_block(&parser.blockdata().unwrap()); //TODO: proper error handling
 
-                stream.write(&new_block.encode()).unwrap();
+                println!("New block: {:?}", new_block);
+
+                stream.write(&new_block.encode()).unwrap(); // TODO: This needs to be properly encoded
                 stream.flush().unwrap();
             },
             Err(_) => { println!("Received unknown opcode")}
