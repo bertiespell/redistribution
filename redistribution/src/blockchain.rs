@@ -1,15 +1,11 @@
-use openssl::sha;
-use hex;
 use std::time::SystemTime;
 use std::collections::VecDeque;
 use serde::{Serialize, Deserialize};
 use serde_json;
-
-mod block;
-pub mod encoder;
-mod hasher;
-pub use encoder::{Encodable, Decodable};
-use block::Block;
+use crate::Block;
+use crate::hasher;
+use crate::encoder;
+use encoder::{Encodable, Decodable};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Blockchain {
@@ -71,7 +67,7 @@ fn is_valid_new_block(new_block: &Block, previous_block: &Block) -> bool {
         return false;
     } else if previous_block.hash != new_block.previous_hash {
         return false;
-    } else if block::calculate_hash_for_block(new_block) != new_block.hash {
+    } else if Block::calculate_hash_for_block(new_block) != new_block.hash {
         return false;
     }
     true
@@ -100,7 +96,6 @@ mod tests {
 
     #[test]
     fn test_new_block_validity() {
-        let blockchain = Blockchain::new();
         let genesis_block = Block::genesis_block();
         let next_block = Blockchain::generate_next_block("Test block data!", &genesis_block);
         let block_is_valid = is_valid_new_block(&next_block, &genesis_block);

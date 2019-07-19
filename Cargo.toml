@@ -1,6 +1,6 @@
 [workspace]
 
 members = [
-    "blockchain",
+    "redistribution",
     "node",
 ]

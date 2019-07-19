@@ -1,5 +1,5 @@
 [package]
-name = "blockchain"
+name = "redistribution"
 version = "0.1.0"
 authors = ["Bertie <berniesnell@gmail.com>"]
 edition = "2018"

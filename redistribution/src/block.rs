@@ -3,11 +3,9 @@ use serde::{Serialize, Deserialize};
 use serde_json;
 
 use crate::encoder;
-use crate::Blockchain;
 use encoder::{Encodable, Decodable};
 use crate::hasher;
 use hasher::calculate_hash;
-// use blockchain::
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Block {
@@ -36,6 +34,10 @@ impl Block {
             previous_hash: String::new()
         }
     }
+
+    pub fn calculate_hash_for_block(block: &Block) -> String {
+        calculate_hash(&block.index, &block.previous_hash, &block.timestamp, &block.data)
+    }
 }
 
 impl Encodable for Block {
@@ -51,8 +53,4 @@ impl Decodable for Block {
         let deserialized: Block = serde_json::from_str(&json_string).unwrap();
         deserialized
     }
-}
-
-pub fn calculate_hash_for_block(block: &Block) -> String {
-    calculate_hash(&block.index, &block.previous_hash, &block.timestamp, &block.data)
 }

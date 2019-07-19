@@ -1,7 +1,7 @@
 use std::io::prelude::*;
 use std::io::Result;
 use std::net::{TcpStream, Shutdown};
-use blockchain::{Blockchain, Encodable};
+use redistribution::{Blockchain, Encodable};
 use std::sync::{Arc, Mutex};
 use serde::{Serialize, Deserialize};
 use serde_json;
