@@ -23,13 +23,9 @@ impl Blockchain {
         }
     }
 
-    fn genesis_block(&self) -> Option<&Block> {
-        self.blocks.front()
-    }
-
-    fn add_block(&mut self, block: Block) {
+    pub fn add_block(&mut self, block: Block) {
         // check that the block is valid here
-        assert!(is_valid_new_block(&block, self.blocks.back().unwrap()));
+        assert!(Blockchain::is_valid_new_block(&block, self.blocks.back().unwrap()));
         self.blocks.push_back(block);
     }
 
@@ -50,6 +46,34 @@ impl Blockchain {
     fn get_latest_block(&self) -> &Block {
         self.blocks.back().unwrap()
     }
+
+    fn is_valid_new_block(new_block: &Block, previous_block: &Block) -> bool {
+        if previous_block.index + 1 != new_block.index {
+            return false;
+        } else if previous_block.hash != new_block.previous_hash {
+            return false;
+        } else if Block::calculate_hash_for_block(new_block) != new_block.hash {
+            return false;
+        }
+        true
+    }
+
+    fn is_chain_valid(blockchain: &Blockchain) -> bool {
+        // TODO: need to check genesis block somehow   
+        blockchain.blocks
+            .iter()
+            .skip(1)
+            .zip(blockchain.blocks.iter())
+            .map(|(block, last_block)| block.previous_hash == last_block.hash)
+            .fold(true, |x, y| x && y)
+    }
+
+    fn determine_longest_chain<'a>(first_blockchain: &'a Blockchain, second_blockchain: &'a Blockchain) -> &'a Blockchain {
+        if first_blockchain.blocks.back().unwrap().index > second_blockchain.blocks.back().unwrap().index {
+            return first_blockchain;
+        }
+        second_blockchain
+    }
 }
 
 impl Encodable for Blockchain {
@@ -67,34 +91,6 @@ impl Decodable for Blockchain {
     }
 }
 
-fn is_valid_new_block(new_block: &Block, previous_block: &Block) -> bool {
-    if previous_block.index + 1 != new_block.index {
-        return false;
-    } else if previous_block.hash != new_block.previous_hash {
-        return false;
-    } else if Block::calculate_hash_for_block(new_block) != new_block.hash {
-        return false;
-    }
-    true
-}
-
-fn is_chain_valid(blockchain: &Blockchain) -> bool {
-    // TODO: need to check genesis block somehow   
-    blockchain.blocks
-        .iter()
-        .skip(1)
-        .zip(blockchain.blocks.iter())
-        .map(|(block, last_block)| block.previous_hash == last_block.hash)
-        .fold(true, |x, y| x && y)
-}
-
-fn determine_longest_chain<'a>(first_blockchain: &'a Blockchain, second_blockchain: &'a Blockchain) -> &'a Blockchain {
-    if first_blockchain.blocks.back().unwrap().index > second_blockchain.blocks.back().unwrap().index {
-        return first_blockchain;
-    }
-    second_blockchain
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -104,7 +100,7 @@ mod tests {
         let blockchain = Blockchain::new();
         let genesis_block = blockchain.get_latest_block();
         let next_block = blockchain.generate_next_block("Test block data!");
-        let block_is_valid = is_valid_new_block(&next_block, &genesis_block);
+        let block_is_valid = Blockchain::is_valid_new_block(&next_block, &genesis_block);
         assert_eq!(block_is_valid, true);
     }
 
@@ -118,7 +114,7 @@ mod tests {
         let new_block3 = blockchain.generate_next_block("Block 3");
         blockchain.add_block(new_block3);
 
-        let validity = is_chain_valid(&blockchain);
+        let validity = Blockchain::is_chain_valid(&blockchain);
         assert_eq!(validity, true);
     }
 }
