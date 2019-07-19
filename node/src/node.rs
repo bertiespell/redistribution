@@ -74,13 +74,19 @@ impl Node {
         }
     }
 
+    pub fn send_transactions() {
+        // TODO: 
+        let transaction = "hello";
+        Parser::build_json_message(ProtocolMessage::MintBlock, transaction);
+    }
+
     pub fn handle_incoming(&mut self, mut stream: TcpStream) {
         let mut buffer = [0; 512];
         stream.read(&mut buffer).unwrap();
 
-        let mut parser = Parser::new(buffer);
-
-        match parser.opcode() {
+        let opcode = Parser::opcode(&mut buffer);
+        
+        match opcode {
             Ok(ProtocolMessage::AddMe) => {
                 // TODO: ensure we're using UUID. Here we just use an incrementing ID - ideally in the future one node won't store *all* other nodes in its peers... so we'll need a smarter system
                 let node_addr = stream.peer_addr().unwrap();
@@ -100,6 +106,7 @@ impl Node {
                 // TODO: Broadcast new node to network?
             },
             Ok(ProtocolMessage::GetPeers) => {
+                let mut parser = Parser::new(buffer, ProtocolMessage::GetPeers);
                 let peer = parser.peer_id();
                 assert!(self.peers.contains_key(&peer));
                 if self.peers.contains_key(&peer) {

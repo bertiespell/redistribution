@@ -1,22 +1,31 @@
 use serde::{Serialize};
 use crate::protocol_message::ProtocolMessage;
 
+#[derive(Debug)]
 pub enum ParserError {
     UnknownProtocol
 }
 
+/// Handles reading/writing encoding structure
+/// Must be passed the protocol to avoid incorrect parsing
+/// Uses the following encoding schema
+///     First 4 bytes: Opcode
+///     Second 16 bytes: Opcode
 pub struct Parser { 
-    raw_bytes: [u8; 512]
+    raw_bytes: [u8; 512],
+    protocol: ProtocolMessage
 }
 
 /// Assumes messages apply to format
 /// 4 bytes - opcode
-/// 16 bytes - peer_id
+/// 16 bytes - peer_id TODO: might want to also include keysize
+/// Remaining bytes - data
 /// ...
 impl Parser {
-    pub fn new(raw_bytes: [u8; 512]) -> Parser {
+    pub fn new(raw_bytes: [u8; 512], protocol: ProtocolMessage) -> Parser {
         Parser {
-            raw_bytes
+            raw_bytes,
+            protocol
         }
     }
 
@@ -44,9 +53,9 @@ impl Parser {
         newer
     }
 
-    pub fn opcode(&mut self) -> Result<ProtocolMessage, ParserError> {
+    pub fn opcode(raw_bytes: &mut [u8]) -> Result<ProtocolMessage, ParserError> {
         let mut opcode = [0; 4];
-        opcode.swap_with_slice(&mut self.raw_bytes[..4]);
+        opcode.swap_with_slice(&mut raw_bytes[..4]);
         if opcode == ProtocolMessage::GetBlocks.as_bytes() {
             return Ok(ProtocolMessage::GetBlocks);
         } else if opcode == ProtocolMessage::AddMe.as_bytes() {
