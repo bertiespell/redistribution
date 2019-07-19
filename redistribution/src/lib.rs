@@ -7,3 +7,4 @@ pub use blockchain::Blockchain;
 pub use encoder::{Encodable, Decodable};
 
 use block::Block;
+pub use block::BlockData;

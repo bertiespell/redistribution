@@ -1,9 +1,11 @@
 use serde::{Serialize};
 use crate::protocol_message::ProtocolMessage;
+use redistribution::{BlockData};
 
 #[derive(Debug)]
 pub enum ParserError {
-    UnknownProtocol
+    UnknownProtocol,
+    InvalidOpCode
 }
 
 /// Handles reading/writing encoding structure
@@ -62,8 +64,8 @@ impl Parser {
             return Ok(ProtocolMessage::AddMe);
         } else if opcode == ProtocolMessage::GetPeers.as_bytes() {
             return Ok(ProtocolMessage::GetPeers);
-        } else if opcode == ProtocolMessage::MintBlock.as_bytes() {
-            return Ok(ProtocolMessage::MintBlock);
+        } else if opcode == ProtocolMessage::MineBlock.as_bytes() {
+            return Ok(ProtocolMessage::MineBlock);
         }
        Err(ParserError::UnknownProtocol)
     }
@@ -75,5 +77,19 @@ impl Parser {
         let mut bytes_id = [0; 16];
         bytes_id.swap_with_slice(&mut self.raw_bytes[4..20]);
         u128::from_be_bytes(bytes_id)
+    }
+
+    /// Reads raw data passed to parser
+    /// Ignores first 4 bytes (opcode)
+    /// Ignores next 16 bytes (peer ID)
+    /// Parses remainer as blockdata and returns string
+    // TODO: what about when the data is bigger than the buffer? How to refactor this?
+    pub fn blockdata(&self) -> Result<BlockData, ParserError> {
+        if self.protocol == ProtocolMessage::MineBlock {
+            let deserialised_data: BlockData = serde_json::from_slice(&self.raw_bytes[20..]).unwrap();
+            Ok(deserialised_data)
+        } else {
+            Err(ParserError::InvalidOpCode)
+        }
     }
 }

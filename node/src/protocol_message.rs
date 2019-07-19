@@ -1,8 +1,8 @@
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub enum ProtocolMessage {
     AddMe, 
     GetPeers,
-    MintBlock,
+    MineBlock,
     GetBlocks,
 }
 
@@ -12,7 +12,7 @@ impl ProtocolMessage {
 		match self {
 			ProtocolMessage::AddMe => "0x00",
 			ProtocolMessage::GetPeers => "0x01",
-			ProtocolMessage::MintBlock => "0x02",
+			ProtocolMessage::MineBlock => "0x02",
 			ProtocolMessage::GetBlocks => "0x03",
 		}
 	}
@@ -22,7 +22,7 @@ impl ProtocolMessage {
 		match self {
 			ProtocolMessage::AddMe => "0x00".as_bytes(),
 			ProtocolMessage::GetPeers => "0x01".as_bytes(),
-			ProtocolMessage::MintBlock => "0x02".as_bytes(),
+			ProtocolMessage::MineBlock => "0x02".as_bytes(),
 			ProtocolMessage::GetBlocks => "0x03".as_bytes(),
 		}
 	}

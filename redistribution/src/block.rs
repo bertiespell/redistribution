@@ -7,11 +7,13 @@ use encoder::{Encodable, Decodable};
 use crate::hasher;
 use hasher::calculate_hash;
 
+pub type BlockData = String;
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Block {
     pub index: u32, // height of the blockchain
     pub timestamp: String,
-    pub data: String,
+    pub data: BlockData,
     pub hash: String,
     pub previous_hash: String
 }

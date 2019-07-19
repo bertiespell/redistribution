@@ -77,7 +77,7 @@ impl Node {
     pub fn send_transactions() {
         // TODO: 
         let transaction = "hello";
-        Parser::build_json_message(ProtocolMessage::MintBlock, transaction);
+        Parser::build_json_message(ProtocolMessage::MineBlock, transaction);
     }
 
     pub fn handle_incoming(&mut self, mut stream: TcpStream) {
@@ -125,7 +125,14 @@ impl Node {
                 stream.write(&blocks).unwrap();
                 stream.flush().unwrap();
             },
-            Ok(ProtocolMessage::MintBlock) => {},
+            Ok(ProtocolMessage::MineBlock) => {
+                let parser = Parser::new(buffer, ProtocolMessage::MineBlock);
+
+                let new_block = self.blockchain.generate_next_block(&parser.blockdata().unwrap()); //TODO: proper error handling
+
+                stream.write(&new_block.encode()).unwrap();
+                stream.flush().unwrap();
+            },
             Err(_) => { println!("Received unknown opcode")}
         }
     }
