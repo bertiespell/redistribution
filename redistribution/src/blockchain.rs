@@ -33,8 +33,9 @@ impl Blockchain {
         self.blocks.push_back(block);
     }
 
-    pub fn generate_next_block(block_data: &str, previous_block: &Block) -> Block {
+    pub fn generate_next_block(&self, block_data: &str) -> Block {
         let timestamp = format!("{:?}", SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap()); // TODO: handle unwrap properly here
+        let previous_block = self.get_latest_block();
         let new_block_index = previous_block.index + 1;
         let hash = hasher::calculate_hash(&new_block_index, &previous_block.hash, &timestamp, block_data);
         Block {
@@ -44,6 +45,10 @@ impl Blockchain {
             hash: hash,
             previous_hash: previous_block.hash.clone()
         }
+    }
+
+    fn get_latest_block(&self) -> &Block {
+        self.blocks.back().unwrap()
     }
 }
 
@@ -96,8 +101,9 @@ mod tests {
 
     #[test]
     fn test_new_block_validity() {
-        let genesis_block = Block::genesis_block();
-        let next_block = Blockchain::generate_next_block("Test block data!", &genesis_block);
+        let blockchain = Blockchain::new();
+        let genesis_block = blockchain.get_latest_block();
+        let next_block = blockchain.generate_next_block("Test block data!");
         let block_is_valid = is_valid_new_block(&next_block, &genesis_block);
         assert_eq!(block_is_valid, true);
     }
@@ -105,13 +111,11 @@ mod tests {
     #[test]
     fn test_chain_validity() {
         let mut blockchain = Blockchain::new();
-        let genesis_block = blockchain.genesis_block().unwrap();
-        let new_block1 = Blockchain::generate_next_block("Block 1", &genesis_block);
-        let new_block2 = Blockchain::generate_next_block("Block 2", &new_block1);
-        let new_block3 = Blockchain::generate_next_block("Block 3", &new_block2);
-
+        let new_block1 = blockchain.generate_next_block("Block 1");
         blockchain.add_block(new_block1);
+        let new_block2 = blockchain.generate_next_block("Block 2");
         blockchain.add_block(new_block2);
+        let new_block3 = blockchain.generate_next_block("Block 3");
         blockchain.add_block(new_block3);
 
         let validity = is_chain_valid(&blockchain);
