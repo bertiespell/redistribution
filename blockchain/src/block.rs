@@ -1,0 +1,58 @@
+use std::time::SystemTime;
+use serde::{Serialize, Deserialize};
+use serde_json;
+
+use crate::encoder;
+use crate::Blockchain;
+use encoder::{Encodable, Decodable};
+use crate::hasher;
+use hasher::calculate_hash;
+// use blockchain::
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct Block {
+    pub index: u32, // height of the blockchain
+    pub timestamp: String,
+    pub data: String,
+    pub hash: String,
+    pub previous_hash: String
+}
+
+impl PartialEq for Block {
+    fn eq(&self, other: &Self) -> bool {
+        self.index == other.index && self.timestamp == other.timestamp && self.data == other.data && self.hash == other.hash && self.previous_hash == other.previous_hash
+    }
+}
+
+impl Block {
+    pub fn genesis_block() -> Block {
+    let timestamp = format!("{:?}", SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap()); // TODO: handle unwrap properly here
+        let hash = calculate_hash(&0, &String::new(), &timestamp, &String::new());
+        Block {
+            index: 0,
+            timestamp: timestamp,
+            data: String::new(),
+            hash: hash,
+            previous_hash: String::new()
+        }
+    }
+}
+
+impl Encodable for Block {
+    fn encode(&self) -> Vec<u8> {
+        let serialized = serde_json::to_string(&self).unwrap();
+        serialized.into_bytes()
+    }
+}
+
+impl Decodable for Block {
+    fn decode(&self, bytes: &Vec<u8>) -> Self {
+        let json_string = String::from_utf8(bytes.clone()).unwrap();
+        let deserialized: Block = serde_json::from_str(&json_string).unwrap();
+        deserialized
+    }
+}
+
+pub fn calculate_hash_for_block(block: &Block) -> String {
+    calculate_hash(&block.index, &block.previous_hash, &block.timestamp, &block.data)
+}
