@@ -51,6 +51,10 @@ fn initalise_discovery(node: Arc<Mutex<node::Node>>, config: config::Config) -> 
                         Ok(_) => {},
                         Err(e) => eprintln!("Failed to get list of peers: {}", e)
                     }
+
+                    let send_transaction_stream = TcpStream::connect(ROOT_NODE).unwrap();
+                    node.send_transactions(send_transaction_stream);
+
                 },
                 Err(e) => eprintln!("Failed to connect to root: {}", e)
             }

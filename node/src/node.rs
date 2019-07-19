@@ -49,12 +49,7 @@ impl Node {
 
     pub fn get_peers(&mut self, mut stream: TcpStream) -> Result<()> {
 
-        let mut message = vec!();
-        let peer_id = self.id.unwrap().to_be_bytes();
-        ProtocolMessage::GetPeers.as_bytes().iter().for_each(|x|{message.push(*x)});
-        peer_id.iter().for_each(|x|{message.push(*x)});
-
-        Parser::build_raw_message(ProtocolMessage::GetPeers, &self.id.unwrap().to_be_bytes().to_vec());
+        let message = Parser::build_message(ProtocolMessage::GetPeers, &self.id.unwrap().to_be_bytes().to_vec(), &vec!());
 
         println!("Sending: {:?}", &message[..]);
         stream.write(&message[..])?;
@@ -74,10 +69,12 @@ impl Node {
         }
     }
 
-    pub fn send_transactions() {
-        // TODO: 
-        let transaction = "hello";
-        Parser::build_json_message(ProtocolMessage::MineBlock, transaction);
+    pub fn send_transactions(&self, mut stream: TcpStream) {
+        let transaction = "hello"; // TODO: this should be actual data!
+        let json = serde_json::to_string(transaction).unwrap();
+        let message = Parser::build_message(ProtocolMessage::MineBlock, &self.id.unwrap().to_be_bytes().to_vec(), &json.as_bytes().to_vec());
+        println!("Sending transations: {:?}", &message[..]);
+        stream.write(&message[..]);
     }
 
     pub fn handle_incoming(&mut self, mut stream: TcpStream) {
@@ -126,7 +123,7 @@ impl Node {
                 stream.flush().unwrap();
             },
             Ok(ProtocolMessage::MineBlock) => {
-                let parser = Parser::new(buffer, ProtocolMessage::MineBlock);
+                let mut parser = Parser::new(buffer, ProtocolMessage::MineBlock);
 
                 let new_block = self.blockchain.generate_next_block(&parser.blockdata().unwrap()); //TODO: proper error handling
 
