@@ -1,11 +1,15 @@
 use crate::protocol_message::{ProtocolMessage, Encoding};
 use redistribution::{BlockData};
 use std::convert::TryFrom;
+use serde::{Serialize};
+use redistribution::{Blockchain, Encodable, Decodable};
+
 
 #[derive(Debug)]
-pub enum ParserError {
+pub enum DecoderError {
     UnknownProtocol,
-    InvalidOpCode
+    InvalidOpCode,
+    NoDecodeAvailable
 }
 
 /// Stores the first index of each header. Used to break up raw message into relevant sections.
@@ -16,14 +20,39 @@ pub enum Headers {
     Data = 36
 }
 
+pub struct Encoder {}
+
+impl Encoder {
+    // TODO: Handle errors properly!
+    pub fn encode_raw(protocol: ProtocolMessage, peer_id: u128, data: Vec<u8>) -> Vec<u8> {
+        let mut raw_encoded = vec!();
+        protocol.as_bytes().iter().for_each(|x|{raw_encoded.push(*x)});
+        peer_id.to_be_bytes().iter().for_each(|x|{raw_encoded.push(*x)});
+        let message_length: u128 = u128::try_from(data.len()).unwrap(); 
+        message_length.to_be_bytes().iter().for_each(|x|{raw_encoded.push(*x)});
+        data.iter().for_each(|x|{raw_encoded.push(*x)});
+        Encoding::EndMessage.as_bytes().iter().for_each(|x|{raw_encoded.push(*x)}); // TODO: Not sure this is necessary now
+        raw_encoded
+    }
+
+    pub fn encoder_json<T: Encodable>(protocol: ProtocolMessage, peer_id: u128, data: &T) -> Vec<u8> {
+        Encoder::encode_raw(protocol, peer_id, data.encode().to_vec())
+    }
+}
+
 /// Handles reading/writing encoding structure
 /// Must be passed the protocol to avoid incorrect parsing
 /// Uses the following encoding schema
 ///     First 4 bytes: Opcode
 ///     Second 16 bytes: Opcode
-pub struct Parser { 
+pub struct Decoder { 
     raw_bytes: [u8; 512],
     protocol: ProtocolMessage
+}
+
+pub enum DecodedType {
+    BlockData(BlockData),
+    Node_ID(u128)
 }
 
 /// Assumes messages apply to format
@@ -33,27 +62,15 @@ pub struct Parser {
 /// ... Data
 /// 
 /// Uses Big Endian
-impl Parser {
-    pub fn new(raw_bytes: [u8; 512], protocol: ProtocolMessage) -> Parser {
-        Parser {
+impl Decoder {
+    pub fn new(raw_bytes: [u8; 512], protocol: ProtocolMessage) -> Decoder {
+        Decoder {
             raw_bytes,
             protocol
         }
     }
 
-    pub fn build_message<'a>(opcode: ProtocolMessage, peer_id: &'a Vec<u8>, message: &'a Vec<u8>) -> Vec<u8> {
-        let mut newer = vec!();
-        opcode.as_bytes().iter().for_each(|x|{newer.push(*x)});
-        peer_id.iter().for_each(|x|{newer.push(*x)});
-        let message_length: u128 = u128::try_from(message.len()).unwrap(); // TODO: Handle and return error here - the message is too large - need to come up with better encoding scheme...
-        println!("Message length: {}", message_length);
-        message_length.to_be_bytes().iter().for_each(|x|{newer.push(*x)}); // puts u8; 16 on message
-        message.iter().for_each(|x|{newer.push(*x)});
-        Encoding::EndMessage.as_bytes().iter().for_each(|x|{newer.push(*x)}); // TODO: Not sure this is necessary now
-        newer
-    }
-
-    pub fn opcode(raw_bytes: &mut [u8]) -> Result<ProtocolMessage, ParserError> {
+    pub fn opcode(raw_bytes: &mut [u8]) -> Result<ProtocolMessage, DecoderError> {
         let mut opcode = [0; 4];
         opcode.swap_with_slice(&mut raw_bytes[Headers::ProtocolType as usize..Headers::PeerEncoding as usize]);
         if opcode == ProtocolMessage::GetBlocks.as_bytes() {
@@ -62,10 +79,14 @@ impl Parser {
             return Ok(ProtocolMessage::AddMe);
         } else if opcode == ProtocolMessage::GetPeers.as_bytes() {
             return Ok(ProtocolMessage::GetPeers);
-        } else if opcode == ProtocolMessage::MineBlock.as_bytes() {
-            return Ok(ProtocolMessage::MineBlock);
+        } else if opcode == ProtocolMessage::NewBlock.as_bytes() {
+            return Ok(ProtocolMessage::NewBlock);
+        } else if opcode == ProtocolMessage::AddTransaction.as_bytes() {
+            return Ok(ProtocolMessage::AddTransaction);
+        } else if opcode == ProtocolMessage::AddedPeer.as_bytes() {
+            return Ok(ProtocolMessage::AddedPeer);
         }
-       Err(ParserError::UnknownProtocol)
+       Err(DecoderError::UnknownProtocol)
     }
 
     /// Reads raw data passed to parser
@@ -77,27 +98,36 @@ impl Parser {
         u128::from_be_bytes(bytes_id)
     }
 
+    pub fn message_length(&mut self) -> u128 {
+        let mut bytes_id = [0; 16];
+        bytes_id.swap_with_slice(&mut self.raw_bytes[Headers::MessageLength as usize..Headers::Data as usize]);
+        u128::from_be_bytes(bytes_id)
+    }
+
     /// Reads raw data passed to parser
     /// Ignores first 4 bytes (opcode)
     /// Ignores next 16 bytes (peer ID)
     /// Parses remainer as blockdata and returns string
-    // TODO: what about when the data is bigger than the buffer? How to refactor this?
-    pub fn blockdata(&mut self) -> Result<BlockData, ParserError> {
-        if self.protocol == ProtocolMessage::MineBlock {
-            println!("Received Transaction Data: {:?}", &self.raw_bytes[..]);
-            let mut message_length = [0; 16]; // TODO: is this length long enough? What to do when the message runs over?
-            message_length.swap_with_slice(&mut self.raw_bytes[Headers::MessageLength as usize..Headers::Data as usize]);
-            let length = u128::from_be_bytes(message_length);
-            println!("Message: {:?} Length!: {}", message_length, length);
-            let index = usize::try_from(length).unwrap(); // TODO: Handle error properly again here.
-            let data = self.raw_bytes[Headers::Data as usize..Headers::Data as usize + index].to_vec();
+    // TODO: what about when the data is bigger than the 512 buffer? How to refactor this?
+    pub fn decode_raw(&mut self) -> Result<Vec<u8>, DecoderError> {
+        let index = usize::try_from(self.message_length()).unwrap(); // TODO: Handle error properly again here.
+        Ok(self.raw_bytes[Headers::Data as usize..Headers::Data as usize + index].to_vec())
+    }
 
-            let json_str = String::from_utf8(data).unwrap();
-            println!("Found string: {:?}", json_str);
-            let deserialised_data: String = serde_json::from_str(&json_str).unwrap();
-            Ok(deserialised_data)
-        } else {
-            Err(ParserError::InvalidOpCode)
+    // TODO: this should pivot on different types
+    pub fn decode_json(&mut self) -> Result<DecodedType, DecoderError> {
+        match self.protocol {
+            ProtocolMessage::AddTransaction => {
+                let decoded_data = self.decode_raw().unwrap();
+                let json_str = String::from_utf8(decoded_data).unwrap();
+                let deserialised_data: BlockData = serde_json::from_str(&json_str).unwrap();
+                Ok(DecodedType::BlockData(deserialised_data))
+            },
+            ProtocolMessage::AddedPeer => {
+                let decoded = u128::decode(&self.decode_raw().unwrap());
+                Ok(DecodedType::Node_ID(decoded))
+            },
+            _ => Err(DecoderError::NoDecodeAvailable)
         }
     }
 }

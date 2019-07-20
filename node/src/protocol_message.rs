@@ -26,12 +26,15 @@ impl Encoding {
 	}
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum ProtocolMessage {
     AddMe, 
+	AddedPeer,
     GetPeers,
-    MineBlock,
+    NewBlock,
     GetBlocks,
+	PeerList,
+	AddTransaction
 }
 
 impl ProtocolMessage {
@@ -40,8 +43,11 @@ impl ProtocolMessage {
 		match self {
 			ProtocolMessage::AddMe => "0x01",
 			ProtocolMessage::GetPeers => "0x02",
-			ProtocolMessage::MineBlock => "0x03",
+			ProtocolMessage::NewBlock => "0x03",
 			ProtocolMessage::GetBlocks => "0x04",
+			ProtocolMessage::AddedPeer => "0x05",
+			ProtocolMessage::PeerList => "0x06",
+			ProtocolMessage::AddTransaction => "0x07"
 		}
 	}
 
@@ -50,8 +56,11 @@ impl ProtocolMessage {
 		match self {
 			ProtocolMessage::AddMe => "0x01".as_bytes(),
 			ProtocolMessage::GetPeers => "0x02".as_bytes(),
-			ProtocolMessage::MineBlock => "0x03".as_bytes(),
+			ProtocolMessage::NewBlock => "0x03".as_bytes(),
 			ProtocolMessage::GetBlocks => "0x04".as_bytes(),
+			ProtocolMessage::AddedPeer => "0x05".as_bytes(),
+			ProtocolMessage::PeerList => "0x06".as_bytes(),
+			ProtocolMessage::AddTransaction => "0x07".as_bytes()
 		}
 	}
 }

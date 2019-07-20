@@ -84,7 +84,7 @@ impl Encodable for Blockchain {
 }
 
 impl Decodable for Blockchain {
-    fn decode(&self, bytes: &Vec<u8>) -> Self {
+    fn decode(bytes: &Vec<u8>) -> Self {
         let json_string = String::from_utf8(bytes.clone()).unwrap();
         let deserialized: Blockchain = serde_json::from_str(&json_string).unwrap();
         deserialized
