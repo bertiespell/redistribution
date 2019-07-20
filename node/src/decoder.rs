@@ -1,14 +1,13 @@
-use crate::protocol_message::{ProtocolMessage, Encoding};
+use crate::protocol_message::{ProtocolMessage};
 use redistribution::{BlockData, Blockchain};
 use std::convert::TryFrom;
-use redistribution::{Encodable, Decodable};
-use crate::node;
-use node::PeerList;
+use redistribution::{Decodable};
+use crate::peerlist;
+use peerlist::PeerList;
 
 #[derive(Debug)]
 pub enum DecoderError {
     UnknownProtocol,
-    InvalidOpCode,
     NoDecodeAvailable
 }
 
@@ -118,8 +117,8 @@ impl Decoder {
                 let raw_data = self.decode_raw().unwrap();
                 let blockchain = Blockchain::decode(&raw_data);
                 Ok(DecodedType::Blockchain(blockchain))
-            }
-            _ => Err(DecoderError::NoDecodeAvailable)
+            },
+            _ => Err(DecoderError::NoDecodeAvailable),
         }
     }
 }

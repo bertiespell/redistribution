@@ -10,6 +10,7 @@ mod config;
 mod protocol_message;
 mod encoder;
 mod decoder;
+mod peerlist;
 
 static ROOT_NODE: &str = "127.0.0.1:7878";
 
@@ -57,8 +58,7 @@ fn initalise_discovery(node: Arc<Mutex<node::Node>>, config: config::Config) -> 
                     node.send_transactions(send_transaction_stream);
 
                     let get_blocks_stream = TcpStream::connect(ROOT_NODE).unwrap();
-                    let blocks = node.get_chain(get_blocks_stream);
-
+                    node.get_chain(get_blocks_stream);
                 },
                 Err(e) => eprintln!("Failed to connect to root: {}", e)
             }

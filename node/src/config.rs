@@ -35,7 +35,3 @@ impl Config {
         Ok(Config { address, port })
     }
 }
-
-pub fn parse_config(args: env::Args) -> Result<Config, &'static str> {
-    Config::new(args)
-}

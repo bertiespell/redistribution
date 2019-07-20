@@ -1,17 +1,16 @@
 use std::io::prelude::*;
 use std::io::{Result, Error, ErrorKind};
 use std::net::{TcpStream, Shutdown};
-use redistribution::{Blockchain, Encodable, Decodable};
+use redistribution::{Blockchain};
 use std::sync::{Arc, Mutex};
 use serde::{Serialize, Deserialize};
-use serde_json;
-use std::collections::HashMap;
-use std::net::{SocketAddr};
 
 use crate::encoder::{Encoder};
 use crate::decoder::{Decoder, DecodedType};
+use crate::peerlist;
 
 use crate::protocol_message::ProtocolMessage;
+use peerlist::PeerList;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Node {
@@ -20,39 +19,14 @@ pub struct Node {
     peerlist: PeerList, // list of IDs
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct PeerList {
-    peers: HashMap<u128, SocketAddr>
-}
-
-impl Encodable for PeerList {
-    fn encode(&self) -> Vec<u8> {
-        let peers = serde_json::to_string(&self.peers).unwrap();
-        peers.into_bytes()
-    }
-}
-
-impl Decodable for PeerList {
-    fn decode(bytes: &Vec<u8>) -> Self {
-        let decoded_json = String::from_utf8(bytes.clone()).unwrap();
-        let peers: HashMap<u128, SocketAddr> = serde_json::from_str(&decoded_json).unwrap();
-        PeerList {
-            peers
-        }
-    }
-}
-
 impl Node {
     pub fn new() -> Arc<Mutex<Node>> {
         let blockchain = Blockchain::new();
-        let peers = HashMap::new();
 
         Arc::new(Mutex::new(Node {
 			id: 0,
             blockchain,
-            peerlist: PeerList {
-                peers
-            },
+            peerlist: PeerList::new(),
         }))
     }
 
@@ -73,7 +47,7 @@ impl Node {
                         self.id = node_id;
                         Ok(())
                     },
-                    Err(e) => {
+                    Err(_) => {
                         Err(Error::new(ErrorKind::Other, "Error decoding Node ID"))
                     },
                     _ => {
@@ -93,10 +67,7 @@ impl Node {
         let mut buffer = [0; 512];
         let result = stream.read(&mut buffer);
         match result {
-            Ok(_) => {
-                // let decoded_json = String::from_utf8(buffer).unwrap();
-                // let peers: HashMap<u128, SocketAddr> = serde_json::from_str(&decoded_json).unwrap();
-            
+            Ok(_) => {            
                 let mut decoder = Decoder::new(buffer, ProtocolMessage::PeerList);
 
                 let peers = decoder.decode_json();
@@ -117,9 +88,9 @@ impl Node {
         let transaction = String::from("hello"); // TODO: this should be actual data!
         let message = Encoder::encode(ProtocolMessage::AddTransaction, self.id, &transaction);
         
-        stream.write(&message[..]);
+        stream.write(&message[..]).unwrap();
         let mut buffer = [0; 16];
-        let result = stream.read(&mut buffer);
+        stream.read(&mut buffer).unwrap();
         // TODO: Properly decode mined block - then actually do something with it!
 
         println!("Received new block: {:?}", buffer);
@@ -128,10 +99,10 @@ impl Node {
     pub fn get_chain(&mut self, mut stream: TcpStream) {
         let message = Encoder::encode(ProtocolMessage::GetBlocks, self.id, &String::new());
         
-        stream.write(&message[..]);
+        stream.write(&message[..]).unwrap();
 
         let mut buffer = [0; 512];
-        stream.read(&mut buffer);
+        stream.read(&mut buffer).unwrap();
         let mut decoder = Decoder::new(buffer, ProtocolMessage::SendBlockchain);
         let decoded = decoder.decode_json();
         match decoded {

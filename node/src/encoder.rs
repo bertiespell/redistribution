@@ -1,7 +1,6 @@
-use crate::protocol_message::{ProtocolMessage, Encoding};
-use redistribution::{BlockData};
+use crate::protocol_message::{ProtocolMessage};
 use std::convert::TryFrom;
-use redistribution::{Encodable, Decodable};
+use redistribution::{Encodable};
 
 pub type EncodedMessage = Vec<u8>;
 
@@ -23,4 +22,18 @@ impl Encoder {
     pub fn encode<T: Encodable>(protocol: ProtocolMessage, peer_id: u128, data: &T) -> EncodedMessage {
         Encoder::encode_raw(protocol, peer_id, data.encode().to_vec())
     }
+}
+
+pub enum Encoding {
+	EndMessage,
+}
+
+impl Encoding {
+	// get the string value of this message.
+	pub fn as_bytes(self) -> &'static [u8] {
+		match self {
+			Encoding::EndMessage => "0x11".as_bytes(),
+
+		}
+	}
 }
