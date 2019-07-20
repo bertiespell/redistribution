@@ -33,7 +33,7 @@ impl Node {
     pub fn add_me(&mut self, mut stream: TcpStream) -> Result<()> {
         // TODO: Make into properly encoded thingy...
 
-        let message = Encoder::encoder_json(ProtocolMessage::AddMe, self.id, &String::new());
+        let message = Encoder::encode(ProtocolMessage::AddMe, self.id, &String::new());
 
         stream.write(&message)?;
 
@@ -66,7 +66,7 @@ impl Node {
 
     pub fn get_peers(&mut self, mut stream: TcpStream) -> Result<()> {
         // TODO: Put this in an encoder...
-        let message = Encoder::encoder_json(ProtocolMessage::GetPeers, self.id, &String::new());
+        let message = Encoder::encode(ProtocolMessage::GetPeers, self.id, &String::new());
 
         println!("Sending: {:?}", &message[..]);
         stream.write(&message[..])?;
@@ -89,7 +89,7 @@ impl Node {
     pub fn send_transactions(&self, mut stream: TcpStream) {
         // TODO: put this in an encoder.
         let transaction = String::from("hello"); // TODO: this should be actual data!
-        let message = Encoder::encoder_json(ProtocolMessage::AddTransaction, self.id, &transaction);
+        let message = Encoder::encode(ProtocolMessage::AddTransaction, self.id, &transaction);
         
         println!("Sending transations: {:?}", &message[..]);
         stream.write(&message[..]);
@@ -122,7 +122,7 @@ impl Node {
                 highest_id = highest_id + 1;
                 self.peers.insert(highest_id, node_addr);
 
-                let message = Encoder::encoder_json(ProtocolMessage::AddedPeer, self.id, &highest_id);
+                let message = Encoder::encode(ProtocolMessage::AddedPeer, self.id, &highest_id);
                 println!("Sending ID message {:?}", &message);
                 stream.write(&message).unwrap();
                 // TODO: Broadcast new node to network?
@@ -157,7 +157,7 @@ impl Node {
                     DecodedType::BlockData(data) => {
                         let new_block = self.blockchain.generate_next_block(&data); //TODO: proper error handling - this hsould return an encoded enum type that we can match on
 
-                        let message = Encoder::encoder_json(ProtocolMessage::NewBlock, self.id, &new_block);
+                        let message = Encoder::encode(ProtocolMessage::NewBlock, self.id, &new_block);
 
                         println!("New block: {:?}", new_block);
 
