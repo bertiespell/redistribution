@@ -8,7 +8,9 @@ use serde_json;
 use std::collections::HashMap;
 use std::net::{SocketAddr};
 
-use crate::parser::{Decoder, Encoder, DecodedType};
+use crate::encoder::{Encoder};
+use crate::decoder::{Decoder, DecodedType};
+
 use crate::protocol_message::ProtocolMessage;
 
 #[derive(Debug, Serialize, Deserialize)]
