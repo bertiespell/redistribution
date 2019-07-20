@@ -57,8 +57,6 @@ impl Node {
     }
 
     pub fn add_me(&mut self, mut stream: TcpStream) -> Result<()> {
-        // TODO: Make into properly encoded thingy...
-
         let message = Encoder::encode(ProtocolMessage::AddMe, self.id, &String::new());
 
         stream.write(&message)?;
@@ -71,7 +69,7 @@ impl Node {
                 let mut decoder = Decoder::new(buffer, ProtocolMessage::AddedPeer);
                 let decoder_type = decoder.decode_json();
                 match decoder_type {
-                    Ok(DecodedType::Node_ID(node_id)) => {
+                    Ok(DecodedType::NodeID(node_id)) => {
                         self.id = node_id;
                         Ok(())
                     },
@@ -116,11 +114,9 @@ impl Node {
     }
 
     pub fn send_transactions(&self, mut stream: TcpStream) {
-        // TODO: put this in an encoder.
         let transaction = String::from("hello"); // TODO: this should be actual data!
         let message = Encoder::encode(ProtocolMessage::AddTransaction, self.id, &transaction);
         
-        println!("Sending transations: {:?}", &message[..]);
         stream.write(&message[..]);
         let mut buffer = [0; 16];
         let result = stream.read(&mut buffer);
@@ -129,11 +125,24 @@ impl Node {
         println!("Received new block: {:?}", buffer);
     }
 
+    pub fn get_chain(&self, mut stream: TcpStream) {
+        let message = Encoder::encode(ProtocolMessage::GetBlocks, self.id, &String::new());
+        
+        stream.write(&message[..]);
+
+        let mut buffer = [0; 512];
+        stream.read(&mut buffer);
+        let mut decoder = Decoder::new(buffer, ProtocolMessage::SendBlockchain);
+        let decoded = decoder.decode_json();
+        println!("Got Chain: {:?}", decoded);
+        // TODO: Update it's own chain...
+    }
+
     pub fn handle_incoming(&mut self, mut stream: TcpStream) {
         let mut buffer = [0; 512];
         stream.read(&mut buffer).unwrap();
 
-        let opcode = Decoder::opcode(&mut buffer);
+        let opcode = Decoder::protocol(&mut buffer);
         
         match opcode {
             Ok(ProtocolMessage::AddMe) => {
@@ -171,7 +180,7 @@ impl Node {
                 }
             },
             Ok(ProtocolMessage::GetBlocks) => {
-                let blocks = Encoder::encode(ProtocolMessage::SendBlocks, self.id, &self.blockchain);
+                let blocks = Encoder::encode(ProtocolMessage::SendBlockchain, self.id, &self.blockchain);
                 stream.write(&blocks).unwrap();
                 stream.flush().unwrap();
             },

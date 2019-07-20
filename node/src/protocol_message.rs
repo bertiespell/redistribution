@@ -35,7 +35,7 @@ pub enum ProtocolMessage {
     GetBlocks,
 	PeerList,
 	AddTransaction,
-	SendBlocks
+	SendBlockchain
 }
 
 impl ProtocolMessage {
@@ -49,7 +49,7 @@ impl ProtocolMessage {
 			ProtocolMessage::AddedPeer => "0x05",
 			ProtocolMessage::PeerList => "0x06",
 			ProtocolMessage::AddTransaction => "0x07",
-			ProtocolMessage::SendBlocks => "0x08",
+			ProtocolMessage::SendBlockchain => "0x08",
 		}
 	}
 
@@ -63,7 +63,7 @@ impl ProtocolMessage {
 			ProtocolMessage::AddedPeer => "0x05".as_bytes(),
 			ProtocolMessage::PeerList => "0x06".as_bytes(),
 			ProtocolMessage::AddTransaction => "0x07".as_bytes(),
-			ProtocolMessage::SendBlocks => "0x08".as_bytes(),
+			ProtocolMessage::SendBlockchain => "0x08".as_bytes(),
 		}
 	}
 }

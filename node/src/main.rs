@@ -56,6 +56,9 @@ fn initalise_discovery(node: Arc<Mutex<node::Node>>, config: config::Config) -> 
                     let send_transaction_stream = TcpStream::connect(ROOT_NODE).unwrap();
                     node.send_transactions(send_transaction_stream);
 
+                    let get_blocks_stream = TcpStream::connect(ROOT_NODE).unwrap();
+                    let blocks = node.get_chain(get_blocks_stream);
+
                 },
                 Err(e) => eprintln!("Failed to connect to root: {}", e)
             }

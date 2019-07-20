@@ -1,5 +1,5 @@
 use crate::protocol_message::{ProtocolMessage, Encoding};
-use redistribution::{BlockData};
+use redistribution::{BlockData, Blockchain};
 use std::convert::TryFrom;
 use redistribution::{Encodable, Decodable};
 use crate::node;
@@ -30,10 +30,12 @@ pub struct Decoder {
     protocol: ProtocolMessage
 }
 
+#[derive(Debug)]
 pub enum DecodedType {
     BlockData(BlockData),
-    Node_ID(u128),
+    NodeID(u128),
     PeerList(PeerList),
+    Blockchain(Blockchain),
 }
 
 /// Assumes messages apply to format
@@ -51,7 +53,7 @@ impl Decoder {
         }
     }
 
-    pub fn opcode(raw_bytes: &mut [u8]) -> Result<ProtocolMessage, DecoderError> {
+    pub fn protocol(raw_bytes: &mut [u8]) -> Result<ProtocolMessage, DecoderError> {
         let mut opcode = [0; 4];
         opcode.swap_with_slice(&mut raw_bytes[Headers::ProtocolType as usize..Headers::PeerEncoding as usize]);
         if opcode == ProtocolMessage::GetBlocks.as_bytes() {
@@ -90,7 +92,7 @@ impl Decoder {
     /// Ignores next 16 bytes (peer ID)
     /// Parses remainer as blockdata and returns string
     // TODO: what about when the data is bigger than the 512 buffer? How to refactor this?
-    pub fn decode_raw(&mut self) -> Result<Vec<u8>, DecoderError> {
+    fn decode_raw(&mut self) -> Result<Vec<u8>, DecoderError> {
         let index = usize::try_from(self.message_length()).unwrap(); // TODO: Handle error properly again here.
         Ok(self.raw_bytes[Headers::Data as usize..Headers::Data as usize + index].to_vec())
     }
@@ -105,12 +107,17 @@ impl Decoder {
             },
             ProtocolMessage::AddedPeer => {
                 let decoded = u128::decode(&self.decode_raw().unwrap());
-                Ok(DecodedType::Node_ID(decoded))
+                Ok(DecodedType::NodeID(decoded))
             },
             ProtocolMessage::PeerList => {
                 let raw_data = self.decode_raw().unwrap();
                 let peerlist = PeerList::decode(&raw_data);
                 Ok(DecodedType::PeerList(peerlist))
+            },
+            ProtocolMessage::SendBlockchain => {
+                let raw_data = self.decode_raw().unwrap();
+                let blockchain = Blockchain::decode(&raw_data);
+                Ok(DecodedType::Blockchain(blockchain))
             }
             _ => Err(DecoderError::NoDecodeAvailable)
         }

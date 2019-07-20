@@ -5,14 +5,6 @@ use redistribution::{Encodable, Decodable};
 
 pub type EncodedMessage = Vec<u8>;
 
-/// Stores the first index of each header. Used to break up raw message into relevant sections.
-pub enum Headers {
-    ProtocolType = 0,
-    PeerEncoding = 4,
-    MessageLength = 20,
-    Data = 36
-}
-
 pub struct Encoder {}
 
 impl Encoder {
