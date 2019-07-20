@@ -39,7 +39,7 @@ impl Encoder {
     }
 
     pub fn encode<T: Encodable>(protocol: ProtocolMessage, peer_id: u128, data: &T) -> Result<EncodedMessage> {
-        Encoder::encode_raw(protocol, peer_id, data.encode().to_vec())
+        Encoder::encode_raw(protocol, peer_id, data.encode()?.to_vec())
     }
 }
 

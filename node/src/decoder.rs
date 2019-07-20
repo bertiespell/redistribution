@@ -111,17 +111,17 @@ impl Decoder {
                 }
             },
             ProtocolMessage::AddedPeer => {
-                let decoded = u128::decode(&self.decode_raw()?);
+                let decoded = u128::decode(&self.decode_raw()?)?;
                 Ok(DecodedType::NodeID(decoded))
             },
             ProtocolMessage::PeerList => {
                 let raw_data = self.decode_raw()?;
-                let peerlist = PeerList::decode(&raw_data);
+                let peerlist = PeerList::decode(&raw_data)?;
                 Ok(DecodedType::PeerList(peerlist))
             },
             ProtocolMessage::SendBlockchain => {
                 let raw_data = self.decode_raw()?;
-                let blockchain = Blockchain::decode(&raw_data);
+                let blockchain = Blockchain::decode(&raw_data)?;
                 Ok(DecodedType::Blockchain(blockchain))
             },
             _ => Err(Error::new(ErrorKind::Other, "No decoder availabel for command")),

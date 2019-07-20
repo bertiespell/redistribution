@@ -6,6 +6,7 @@ use crate::Block;
 use crate::hasher;
 use crate::encoder;
 use encoder::{Encodable, Decodable};
+use std::io::{Result, Error, ErrorKind};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Blockchain {
@@ -77,17 +78,17 @@ impl Blockchain {
 }
 
 impl Encodable for Blockchain {
-    fn encode(&self) -> Vec<u8> {
-        let serialized = serde_json::to_string(&self).unwrap();
-        serialized.into_bytes()
+    fn encode(&self) -> Result<Vec<u8>> {
+        let serialized = serde_json::to_string(&self)?;
+        Ok(serialized.into_bytes())
     }
 }
 
 impl Decodable for Blockchain {
-    fn decode(bytes: &Vec<u8>) -> Self {
+    fn decode(bytes: &Vec<u8>) -> Result<Self> {
         let json_string = String::from_utf8(bytes.clone()).unwrap();
-        let deserialized: Blockchain = serde_json::from_str(&json_string).unwrap();
-        deserialized
+        let deserialized: Blockchain = serde_json::from_str(&json_string)?;
+        Ok(deserialized)
     }
 }
 
