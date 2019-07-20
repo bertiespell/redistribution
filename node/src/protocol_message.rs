@@ -34,7 +34,8 @@ pub enum ProtocolMessage {
     NewBlock,
     GetBlocks,
 	PeerList,
-	AddTransaction
+	AddTransaction,
+	SendBlocks
 }
 
 impl ProtocolMessage {
@@ -47,7 +48,8 @@ impl ProtocolMessage {
 			ProtocolMessage::GetBlocks => "0x04",
 			ProtocolMessage::AddedPeer => "0x05",
 			ProtocolMessage::PeerList => "0x06",
-			ProtocolMessage::AddTransaction => "0x07"
+			ProtocolMessage::AddTransaction => "0x07",
+			ProtocolMessage::SendBlocks => "0x08",
 		}
 	}
 
@@ -60,7 +62,8 @@ impl ProtocolMessage {
 			ProtocolMessage::GetBlocks => "0x04".as_bytes(),
 			ProtocolMessage::AddedPeer => "0x05".as_bytes(),
 			ProtocolMessage::PeerList => "0x06".as_bytes(),
-			ProtocolMessage::AddTransaction => "0x07".as_bytes()
+			ProtocolMessage::AddTransaction => "0x07".as_bytes(),
+			ProtocolMessage::SendBlocks => "0x08".as_bytes(),
 		}
 	}
 }

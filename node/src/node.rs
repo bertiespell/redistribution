@@ -171,8 +171,7 @@ impl Node {
                 }
             },
             Ok(ProtocolMessage::GetBlocks) => {
-                let blocks = self.blockchain.encode();
-                println!("Sending blocks {:?}", &blocks);
+                let blocks = Encoder::encode(ProtocolMessage::SendBlocks, self.id, &self.blockchain);
                 stream.write(&blocks).unwrap();
                 stream.flush().unwrap();
             },
