@@ -2,6 +2,8 @@ use crate::protocol_message::{ProtocolMessage, Encoding};
 use redistribution::{BlockData};
 use std::convert::TryFrom;
 use redistribution::{Encodable, Decodable};
+use crate::node;
+use node::PeerList;
 
 #[derive(Debug)]
 pub enum DecoderError {
@@ -30,7 +32,8 @@ pub struct Decoder {
 
 pub enum DecodedType {
     BlockData(BlockData),
-    Node_ID(u128)
+    Node_ID(u128),
+    PeerList(PeerList),
 }
 
 /// Assumes messages apply to format
@@ -104,6 +107,11 @@ impl Decoder {
                 let decoded = u128::decode(&self.decode_raw().unwrap());
                 Ok(DecodedType::Node_ID(decoded))
             },
+            ProtocolMessage::PeerList => {
+                let raw_data = self.decode_raw().unwrap();
+                let peerlist = PeerList::decode(&raw_data);
+                Ok(DecodedType::PeerList(peerlist))
+            }
             _ => Err(DecoderError::NoDecodeAvailable)
         }
     }
