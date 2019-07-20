@@ -136,8 +136,8 @@ impl Node {
         let decoded = decoder.decode_json();
         match decoded {
             Ok(DecodedType::Blockchain(blockchain)) => {
-                println!("Got Chain: {:?}", blockchain);
-                // TODO: should verify here
+                assert!(Blockchain::is_chain_valid(&blockchain));
+                println!("Received new chain... Updating own chain with: {:?}", blockchain);
                 self.blockchain = blockchain;
             },
             _ => println!("Could not decode blockchain")

@@ -58,7 +58,7 @@ impl Blockchain {
         true
     }
 
-    fn is_chain_valid(blockchain: &Blockchain) -> bool {
+    pub fn is_chain_valid(blockchain: &Blockchain) -> bool {
         // TODO: need to check genesis block somehow   
         blockchain.blocks
             .iter()
