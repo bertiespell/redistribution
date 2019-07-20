@@ -17,7 +17,7 @@ use crate::protocol_message::ProtocolMessage;
 pub struct Node {
 	pub id: u128,
     blockchain: Blockchain,
-    peers: PeerList, // list of IDs
+    peerlist: PeerList, // list of IDs
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -50,7 +50,7 @@ impl Node {
         Arc::new(Mutex::new(Node {
 			id: 0,
             blockchain,
-            peers: PeerList {
+            peerlist: PeerList {
                 peers
             },
         }))
@@ -104,8 +104,7 @@ impl Node {
                 let peers = decoder.decode_json();
                 match peers {
                     Ok(DecodedType::PeerList(peerlist)) => {
-                        self.peers = peerlist;
-                        println!("Received Peers: {:?}", &self.peers);
+                        self.peerlist = peerlist;
                         Ok(())
                     },
                     _ => Err(Error::new(ErrorKind::Other, "Did not decode PeerList")) // TODO: handle erros properly... again! (Handle error two error cases here)
@@ -141,7 +140,7 @@ impl Node {
                 // TODO: ensure we're using UUID. Here we just use an incrementing ID - ideally in the future one node won't store *all* other nodes in its peers... so we'll need a smarter system
                 let node_addr = stream.peer_addr().unwrap();
                 let mut highest_id: u128 = 1;
-                let mut peers = self.peers.peers.iter();
+                let mut peers = self.peerlist.peers.iter();
 
                 while let Some((peer_id, _)) = peers.next() {
                     if highest_id < *peer_id {
@@ -150,7 +149,7 @@ impl Node {
                 }
 
                 highest_id = highest_id + 1;
-                self.peers.peers.insert(highest_id, node_addr);
+                self.peerlist.peers.insert(highest_id, node_addr);
 
                 let message = Encoder::encode(ProtocolMessage::AddedPeer, self.id, &highest_id);
                 println!("Sending ID message {:?}", &message);
@@ -161,12 +160,12 @@ impl Node {
                 let mut decoder = Decoder::new(buffer, ProtocolMessage::GetPeers);
                 let peer = decoder.peer_id();
                 println!("Peer ID: {}", peer);
-                assert!(self.peers.peers.contains_key(&peer));
-                if self.peers.peers.contains_key(&peer) {
+                assert!(self.peerlist.peers.contains_key(&peer));
+                if self.peerlist.peers.contains_key(&peer) {
                     // println!("Received GetPeer request from: {}", peer);
                     // let peers = serde_json::to_string(&self.peers).unwrap();
                     // TODO: Now this should be encoded
-                    let message = Encoder::encode(ProtocolMessage::PeerList, self.id, &self.peers);
+                    let message = Encoder::encode(ProtocolMessage::PeerList, self.id, &self.peerlist);
 
                     stream.write(&message).unwrap();
                     stream.flush().unwrap();
