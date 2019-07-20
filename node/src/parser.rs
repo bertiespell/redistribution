@@ -1,9 +1,9 @@
 use crate::protocol_message::{ProtocolMessage, Encoding};
 use redistribution::{BlockData};
 use std::convert::TryFrom;
-use serde::{Serialize};
-use redistribution::{Blockchain, Encodable, Decodable};
+use redistribution::{Encodable, Decodable};
 
+pub type EncodedMessage = Vec<u8>;
 
 #[derive(Debug)]
 pub enum DecoderError {
@@ -24,7 +24,7 @@ pub struct Encoder {}
 
 impl Encoder {
     // TODO: Handle errors properly!
-    pub fn encode_raw(protocol: ProtocolMessage, peer_id: u128, data: Vec<u8>) -> Vec<u8> {
+    fn encode_raw(protocol: ProtocolMessage, peer_id: u128, data: Vec<u8>) -> EncodedMessage {
         let mut raw_encoded = vec!();
         protocol.as_bytes().iter().for_each(|x|{raw_encoded.push(*x)});
         peer_id.to_be_bytes().iter().for_each(|x|{raw_encoded.push(*x)});
@@ -35,7 +35,7 @@ impl Encoder {
         raw_encoded
     }
 
-    pub fn encoder_json<T: Encodable>(protocol: ProtocolMessage, peer_id: u128, data: &T) -> Vec<u8> {
+    pub fn encoder_json<T: Encodable>(protocol: ProtocolMessage, peer_id: u128, data: &T) -> EncodedMessage {
         Encoder::encode_raw(protocol, peer_id, data.encode().to_vec())
     }
 }

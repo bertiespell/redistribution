@@ -33,7 +33,7 @@ impl Node {
     pub fn add_me(&mut self, mut stream: TcpStream) -> Result<()> {
         // TODO: Make into properly encoded thingy...
 
-        let message = Encoder::encode_raw(ProtocolMessage::AddMe, self.id, vec!());
+        let message = Encoder::encoder_json(ProtocolMessage::AddMe, self.id, &String::new());
 
         stream.write(&message)?;
 
@@ -59,7 +59,6 @@ impl Node {
                         Err(Error::new(ErrorKind::Other, "Wrong decoding typ received"))
                     }
                 }
-                // let node_id = u128::from_be_bytes(buffer);
             },
             Err(e) => Err(e),
         }
@@ -67,7 +66,7 @@ impl Node {
 
     pub fn get_peers(&mut self, mut stream: TcpStream) -> Result<()> {
         // TODO: Put this in an encoder...
-        let message = Encoder::encode_raw(ProtocolMessage::GetPeers, self.id, vec!());
+        let message = Encoder::encoder_json(ProtocolMessage::GetPeers, self.id, &String::new());
 
         println!("Sending: {:?}", &message[..]);
         stream.write(&message[..])?;
@@ -92,8 +91,6 @@ impl Node {
         let transaction = String::from("hello"); // TODO: this should be actual data!
         let message = Encoder::encoder_json(ProtocolMessage::AddTransaction, self.id, &transaction);
         
-        // (ProtocolMessage::AddTransaction, &self.id.unwrap().to_be_bytes().to_vec(), &json.as_bytes().to_vec());
-
         println!("Sending transations: {:?}", &message[..]);
         stream.write(&message[..]);
         let mut buffer = [0; 16];
