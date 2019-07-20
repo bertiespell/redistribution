@@ -159,12 +159,8 @@ impl Node {
             Ok(ProtocolMessage::GetPeers) => {
                 let mut decoder = Decoder::new(buffer, ProtocolMessage::GetPeers);
                 let peer = decoder.peer_id();
-                println!("Peer ID: {}", peer);
                 assert!(self.peerlist.peers.contains_key(&peer));
                 if self.peerlist.peers.contains_key(&peer) {
-                    // println!("Received GetPeer request from: {}", peer);
-                    // let peers = serde_json::to_string(&self.peers).unwrap();
-                    // TODO: Now this should be encoded
                     let message = Encoder::encode(ProtocolMessage::PeerList, self.id, &self.peerlist);
 
                     stream.write(&message).unwrap();
