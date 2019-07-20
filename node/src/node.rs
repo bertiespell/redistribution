@@ -125,7 +125,7 @@ impl Node {
         println!("Received new block: {:?}", buffer);
     }
 
-    pub fn get_chain(&self, mut stream: TcpStream) {
+    pub fn get_chain(&mut self, mut stream: TcpStream) {
         let message = Encoder::encode(ProtocolMessage::GetBlocks, self.id, &String::new());
         
         stream.write(&message[..]);
@@ -134,8 +134,14 @@ impl Node {
         stream.read(&mut buffer);
         let mut decoder = Decoder::new(buffer, ProtocolMessage::SendBlockchain);
         let decoded = decoder.decode_json();
-        println!("Got Chain: {:?}", decoded);
-        // TODO: Update it's own chain...
+        match decoded {
+            Ok(DecodedType::Blockchain(blockchain)) => {
+                println!("Got Chain: {:?}", blockchain);
+                // TODO: should verify here
+                self.blockchain = blockchain;
+            },
+            _ => println!("Could not decode blockchain")
+        }
     }
 
     pub fn handle_incoming(&mut self, mut stream: TcpStream) {
