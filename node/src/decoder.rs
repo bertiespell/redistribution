@@ -4,12 +4,8 @@ use std::convert::TryFrom;
 use redistribution::{Decodable};
 use crate::peerlist;
 use peerlist::PeerList;
+use std::io::{Result, Error, ErrorKind};
 
-#[derive(Debug)]
-pub enum DecoderError {
-    UnknownProtocol,
-    NoDecodeAvailable
-}
 
 /// Stores the first index of each header. Used to break up raw message into relevant sections.
 pub enum Headers {
@@ -52,7 +48,7 @@ impl Decoder {
         }
     }
 
-    pub fn protocol(raw_bytes: &mut [u8]) -> Result<ProtocolMessage, DecoderError> {
+    pub fn protocol(raw_bytes: &mut [u8]) -> Result<ProtocolMessage> {
         let mut opcode = [0; 4];
         opcode.swap_with_slice(&mut raw_bytes[Headers::ProtocolType as usize..Headers::PeerEncoding as usize]);
         if opcode == ProtocolMessage::GetBlocks.as_bytes() {
@@ -68,7 +64,7 @@ impl Decoder {
         } else if opcode == ProtocolMessage::AddedPeer.as_bytes() {
             return Ok(ProtocolMessage::AddedPeer);
         }
-       Err(DecoderError::UnknownProtocol)
+       Err(Error::new(ErrorKind::Other, "Unknown Protocol"))
     }
 
     /// Reads raw data passed to parser
@@ -91,34 +87,44 @@ impl Decoder {
     /// Ignores next 16 bytes (peer ID)
     /// Parses remainer as blockdata and returns string
     // TODO: what about when the data is bigger than the 512 buffer? How to refactor this?
-    fn decode_raw(&mut self) -> Result<Vec<u8>, DecoderError> {
-        let index = usize::try_from(self.message_length()).unwrap(); // TODO: Handle error properly again here.
-        Ok(self.raw_bytes[Headers::Data as usize..Headers::Data as usize + index].to_vec())
+    fn decode_raw(&mut self) -> Result<Vec<u8>> {
+        let index_result = usize::try_from(self.message_length());
+        match index_result {
+            Ok(index) => {
+                Ok(self.raw_bytes[Headers::Data as usize..Headers::Data as usize + index].to_vec())
+            },
+            Err(_) => Err(Error::new(ErrorKind::InvalidData, "Could not decode raw data - failure to create usize index from message length"))
+        }
     }
 
-    pub fn decode_json(&mut self) -> Result<DecodedType, DecoderError> {
+    pub fn decode_json(&mut self) -> Result<DecodedType> {
         match self.protocol {
             ProtocolMessage::AddTransaction => {
-                let decoded_data = self.decode_raw().unwrap();
-                let json_str = String::from_utf8(decoded_data).unwrap();
-                let deserialised_data: BlockData = serde_json::from_str(&json_str).unwrap();
-                Ok(DecodedType::BlockData(deserialised_data))
+                let decoded_data = self.decode_raw()?;
+                let json_str_result = String::from_utf8(decoded_data);
+                match json_str_result {
+                    Ok(json_str) => {
+                        let deserialised_data: BlockData = serde_json::from_str(&json_str)?;
+                        Ok(DecodedType::BlockData(deserialised_data))
+                    },
+                    Err(_) => Err(Error::new(ErrorKind::InvalidData, "Could not create string from decoded data"))
+                }
             },
             ProtocolMessage::AddedPeer => {
-                let decoded = u128::decode(&self.decode_raw().unwrap());
+                let decoded = u128::decode(&self.decode_raw()?);
                 Ok(DecodedType::NodeID(decoded))
             },
             ProtocolMessage::PeerList => {
-                let raw_data = self.decode_raw().unwrap();
+                let raw_data = self.decode_raw()?;
                 let peerlist = PeerList::decode(&raw_data);
                 Ok(DecodedType::PeerList(peerlist))
             },
             ProtocolMessage::SendBlockchain => {
-                let raw_data = self.decode_raw().unwrap();
+                let raw_data = self.decode_raw()?;
                 let blockchain = Blockchain::decode(&raw_data);
                 Ok(DecodedType::Blockchain(blockchain))
             },
-            _ => Err(DecoderError::NoDecodeAvailable),
+            _ => Err(Error::new(ErrorKind::Other, "No decoder availabel for command")),
         }
     }
 }
