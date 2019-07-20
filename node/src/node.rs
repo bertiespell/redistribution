@@ -169,7 +169,7 @@ impl Node {
                 let decoded_type = decoder.decode_json()?;
                 match decoded_type {
                     DecodedType::BlockData(data) => {
-                        let new_block = self.blockchain.generate_next_block(&data);
+                        let new_block = self.blockchain.generate_next_block(&data)?;
 
                         let message = Encoder::encode(ProtocolMessage::NewBlock, self.id, &new_block)?;
 

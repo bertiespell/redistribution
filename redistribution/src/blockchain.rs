@@ -30,22 +30,32 @@ impl Blockchain {
         self.blocks.push_back(block);
     }
 
-    pub fn generate_next_block(&self, block_data: &str) -> Block {
-        let timestamp = format!("{:?}", SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap()); // TODO: handle unwrap properly here
-        let previous_block = self.get_latest_block();
-        let new_block_index = previous_block.index + 1;
-        let hash = hasher::calculate_hash(&new_block_index, &previous_block.hash, &timestamp, block_data);
-        Block {
-            index: new_block_index,
-            timestamp: timestamp,
-            data: block_data.to_string(),
-            hash: hash,
-            previous_hash: previous_block.hash.clone()
+    pub fn generate_next_block(&self, block_data: &str) -> Result<Block> {
+        let now_result = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH);
+        match now_result {
+            Ok(now) => {
+                let timestamp = format!("{:?}", now);
+                let previous_block = self.get_latest_block()?;
+                let new_block_index = previous_block.index + 1;
+                let hash = hasher::calculate_hash(&new_block_index, &previous_block.hash, &timestamp, block_data);
+                Ok(Block {
+                    index: new_block_index,
+                    timestamp: timestamp,
+                    data: block_data.to_string(),
+                    hash: hash,
+                    previous_hash: previous_block.hash.clone()
+                })
+            },
+            Err(_) => Err(Error::new(ErrorKind::NotFound, "Error reporting system time"))
         }
     }
 
-    fn get_latest_block(&self) -> &Block {
-        self.blocks.back().unwrap()
+    fn get_latest_block(&self) -> Result<&Block> {
+        let last_block_result = self.blocks.back();
+        match last_block_result {
+            Some(block) => Ok(block),
+            None => Err(Error::new(ErrorKind::NotFound, "Unable to locate last block"))
+        }
     }
 
     fn is_valid_new_block(new_block: &Block, previous_block: &Block) -> bool {
@@ -69,11 +79,23 @@ impl Blockchain {
             .fold(true, |x, y| x && y)
     }
 
-    fn determine_longest_chain<'a>(first_blockchain: &'a Blockchain, second_blockchain: &'a Blockchain) -> &'a Blockchain {
-        if first_blockchain.blocks.back().unwrap().index > second_blockchain.blocks.back().unwrap().index {
-            return first_blockchain;
+    pub fn determine_longest_chain<'a>(first_blockchain: &'a Blockchain, second_blockchain: &'a Blockchain) -> Result<&'a Blockchain> {
+        let last_block_in_first_chain = first_blockchain.blocks.back();
+        match last_block_in_first_chain {
+            Some(first_block) => {
+                let last_block_in_second_chain = second_blockchain.blocks.back();
+                match last_block_in_second_chain {
+                    Some(second_block) => {
+                        if first_block.index > second_block.index {
+                            return Ok(first_blockchain);
+                        }
+                        Ok(second_blockchain)
+                    },
+                    None => Err(Error::new(ErrorKind::NotFound, "Unable to locate last block in second chain"))
+                }
+            },
+            None => Err(Error::new(ErrorKind::NotFound, "Unable to locate last block in first chain"))
         }
-        second_blockchain
     }
 }
 
@@ -100,8 +122,8 @@ mod tests {
     fn test_new_block_validity() {
         let blockchain = Blockchain::new();
         let genesis_block = blockchain.get_latest_block();
-        let next_block = blockchain.generate_next_block("Test block data!");
-        let block_is_valid = Blockchain::is_valid_new_block(&next_block, &genesis_block);
+        let next_block = blockchain.generate_next_block("Test block data!").unwrap();
+        let block_is_valid = Blockchain::is_valid_new_block(&next_block, &genesis_block.unwrap());
         assert_eq!(block_is_valid, true);
     }
 
@@ -109,11 +131,11 @@ mod tests {
     fn test_chain_validity() {
         let mut blockchain = Blockchain::new();
         let new_block1 = blockchain.generate_next_block("Block 1");
-        blockchain.add_block(new_block1);
+        blockchain.add_block(new_block1.unwrap());
         let new_block2 = blockchain.generate_next_block("Block 2");
-        blockchain.add_block(new_block2);
+        blockchain.add_block(new_block2.unwrap());
         let new_block3 = blockchain.generate_next_block("Block 3");
-        blockchain.add_block(new_block3);
+        blockchain.add_block(new_block3.unwrap());
 
         let validity = Blockchain::is_chain_valid(&blockchain);
         assert_eq!(validity, true);
