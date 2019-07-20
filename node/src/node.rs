@@ -21,11 +21,9 @@ pub struct Node {
 
 impl Node {
     pub fn new() -> Arc<Mutex<Node>> {
-        let blockchain = Blockchain::new();
-
         Arc::new(Mutex::new(Node {
 			id: 0,
-            blockchain,
+            blockchain: Blockchain::new(),
             peerlist: PeerList::new(),
         }))
     }
