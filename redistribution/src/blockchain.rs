@@ -24,10 +24,18 @@ impl Blockchain {
         })
     }
 
-    pub fn add_block(&mut self, block: Block) {
-        // check that the block is valid here
-        assert!(Blockchain::is_valid_new_block(&block, self.blocks.back().unwrap()));
-        self.blocks.push_back(block);
+    pub fn add_block(&mut self, block: Block) -> Result<()> {
+        let last_block_result = self.blocks.back();
+        match last_block_result {
+            Some(last_block) => {
+                if Blockchain::is_valid_new_block(&block, last_block) {
+                    Ok(self.blocks.push_back(block))
+                } else {
+                    Err(Error::new(ErrorKind::InvalidData, "Invalid block"))
+                }
+            },
+            None => Err(Error::new(ErrorKind::InvalidData, "No last block to append to"))
+        }
     }
 
     pub fn generate_next_block(&self, block_data: &str) -> Result<Block> {

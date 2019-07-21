@@ -66,10 +66,8 @@ fn initalise_discovery(node: Arc<Mutex<node::Node>>, config: config::Config) -> 
             }
             
         } else {
-            // TODO: the root node needs an ID!
             let mut node = node.lock().unwrap();
             node.id = 1;
-            println!("Root node initialised.");
         }
         println!("Client initialised on: {}", &config.address);
     })
