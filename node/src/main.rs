@@ -35,7 +35,7 @@ fn intialise_listener(node: Arc<Mutex<node::Node>>, config: config::Config) -> J
         let listener = TcpListener::bind(config.address).unwrap();
         for stream in listener.incoming() {
             let mut node = node.lock().unwrap();
-            node.handle_incoming(stream.unwrap());
+            node.handle_incoming(stream.unwrap()).unwrap();
         }
     })
 }
@@ -57,10 +57,10 @@ fn initalise_discovery(node: Arc<Mutex<node::Node>>, config: config::Config) -> 
                     }
 
                     let send_transaction_stream = TcpStream::connect(ROOT_NODE).unwrap();
-                    node.send_transactions(send_transaction_stream);
+                    node.send_transactions(send_transaction_stream).unwrap();
 
                     let get_blocks_stream = TcpStream::connect(ROOT_NODE).unwrap();
-                    node.get_chain(get_blocks_stream);
+                    node.get_chain(get_blocks_stream).unwrap();
                 },
                 Err(e) => eprintln!("Failed to connect to root: {}", e)
             }
