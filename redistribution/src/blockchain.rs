@@ -125,16 +125,16 @@ mod tests {
 
     #[test]
     fn test_new_block_validity() {
-        let blockchain = Blockchain::new();
-        let genesis_block = blockchain.get_latest_block();
+        let blockchain = Blockchain::new().unwrap();
+        let genesis_block = blockchain.get_latest_block().unwrap();
         let next_block = blockchain.generate_next_block("Test block data!").unwrap();
-        let block_is_valid = Blockchain::is_valid_new_block(&next_block, &genesis_block.unwrap());
+        let block_is_valid = Blockchain::is_valid_new_block(&next_block, &genesis_block);
         assert_eq!(block_is_valid, true);
     }
 
     #[test]
     fn test_chain_validity() {
-        let mut blockchain = Blockchain::new();
+        let mut blockchain = Blockchain::new().unwrap();
         let new_block1 = blockchain.generate_next_block("Block 1");
         blockchain.add_block(new_block1.unwrap());
         let new_block2 = blockchain.generate_next_block("Block 2");
