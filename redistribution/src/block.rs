@@ -26,15 +26,21 @@ impl PartialEq for Block {
 }
 
 impl Block {
-    pub fn genesis_block() -> Block {
-    let timestamp = format!("{:?}", SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap()); // TODO: handle unwrap properly here
-        let hash = calculate_hash(&0, &String::new(), &timestamp, &String::new());
-        Block {
-            index: 0,
-            timestamp: timestamp,
-            data: String::new(),
-            hash: hash,
-            previous_hash: String::new()
+    pub fn genesis_block() -> Result<Block> {
+        let system_time = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH);
+        match system_time {
+            Ok(time) => {
+                let timestamp = format!("{:?}", time);
+                let hash = calculate_hash(&0, &String::new(), &timestamp, &String::new());
+                Ok(Block {
+                    index: 0,
+                    timestamp: timestamp,
+                    data: String::new(),
+                    hash: hash,
+                    previous_hash: String::new()
+                })
+            },
+            Err(_) => Err(Error::new(ErrorKind::InvalidData, "Error getting system time"))
         }
     }
 
@@ -52,8 +58,13 @@ impl Encodable for Block {
 
 impl Decodable for Block {
     fn decode(bytes: &Vec<u8>) -> Result<Self> {
-        let json_string = String::from_utf8(bytes.clone()).unwrap();
-        let deserialized: Block = serde_json::from_str(&json_string)?;
-        Ok(deserialized)
+        let json_string_result = String::from_utf8(bytes.clone());
+        match json_string_result {
+            Ok(json_string) => {
+                let deserialized: Block = serde_json::from_str(&json_string)?;
+                Ok(deserialized)
+            },
+            Err(_) => Err(Error::new(ErrorKind::InvalidData, "Unable to decode Block - bytes not valid utf8"))
+        }
     }
 }

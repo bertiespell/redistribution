@@ -20,12 +20,12 @@ pub struct Node {
 }
 
 impl Node {
-    pub fn new() -> Arc<Mutex<Node>> {
-        Arc::new(Mutex::new(Node {
+    pub fn new() -> Result<Arc<Mutex<Node>>> {
+        Ok(Arc::new(Mutex::new(Node {
 			id: 0,
-            blockchain: Blockchain::new(),
+            blockchain: Blockchain::new()?,
             peerlist: PeerList::new(),
-        }))
+        })))
     }
 
     pub fn add_me(&mut self, mut stream: TcpStream) -> Result<()> {

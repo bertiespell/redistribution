@@ -4,6 +4,7 @@ use std::thread::{JoinHandle};
 use std::process;
 use std::sync::{Arc, Mutex};
 use std::net::{TcpListener, TcpStream};
+use std::io::{Result};
 
 mod node;
 mod config;
@@ -14,17 +15,18 @@ mod peerlist;
 
 static ROOT_NODE: &str = "127.0.0.1:7878";
 
-fn main() {
+fn main() -> Result<()> {
     let config = config::Config::new(env::args()).unwrap_or_else(|err| {
         eprintln!("Problem parsing arguments: {}", err);
         process::exit(1)
     });
-    let node = node::Node::new();
+    let node = node::Node::new()?;
 
     let listener_thread = intialise_listener(Arc::clone(&node), config);
     let discovery_thread = initalise_discovery(Arc::clone(&node), config);
     discovery_thread.join().unwrap();
     listener_thread.join().unwrap();
+    Ok(())
 }
 
 /// Starts a listener thread and waits

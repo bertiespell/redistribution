@@ -26,10 +26,15 @@ impl Encodable for PeerList {
 
 impl Decodable for PeerList {
     fn decode(bytes: &Vec<u8>) -> Result<Self> {
-        let decoded_json = String::from_utf8(bytes.clone()).unwrap();
-        let peers: HashMap<u128, SocketAddr> = serde_json::from_str(&decoded_json)?;
-        Ok(PeerList {
-            peers
-        })
+        let decoded_json_result = String::from_utf8(bytes.clone());
+        match decoded_json_result {
+            Ok(decoded_json) => {
+                let peers: HashMap<u128, SocketAddr> = serde_json::from_str(&decoded_json)?;
+                Ok(PeerList {
+                    peers
+                })
+            },
+            Err(_) => Err(Error::new(ErrorKind::InvalidData, "Failed to decode Peerlist - invalid utf8"))
+        }
     }
 }

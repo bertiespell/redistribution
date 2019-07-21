@@ -14,14 +14,14 @@ pub struct Blockchain {
 }
 
 impl Blockchain {
-    pub fn new() -> Blockchain {
-        let genesis_block = Block::genesis_block();
+    pub fn new() -> Result<Blockchain> {
+        let genesis_block = Block::genesis_block()?;
         let mut blocks = VecDeque::new();
         blocks.push_back(genesis_block);
 
-        Blockchain { 
+        Ok(Blockchain { 
             blocks
-        }
+        })
     }
 
     pub fn add_block(&mut self, block: Block) {
@@ -108,9 +108,14 @@ impl Encodable for Blockchain {
 
 impl Decodable for Blockchain {
     fn decode(bytes: &Vec<u8>) -> Result<Self> {
-        let json_string = String::from_utf8(bytes.clone()).unwrap();
-        let deserialized: Blockchain = serde_json::from_str(&json_string)?;
-        Ok(deserialized)
+        let json_string_result = String::from_utf8(bytes.clone());
+        match json_string_result {
+            Ok(json_string) => {
+                let deserialized: Blockchain = serde_json::from_str(&json_string)?;
+                Ok(deserialized)
+            },
+            Err(_) => Err(Error::new(ErrorKind::InvalidData, "Unable to decode Blockchain - bytes not valid utf8"))
+        }
     }
 }
 
