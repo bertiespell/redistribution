@@ -17,8 +17,8 @@ pub struct Block {
     pub data: BlockData,
     pub hash: String,
     pub previous_hash: String,
-    pub difficuly: u128,
-    pub nonce: u32,
+    pub difficuly: u32,
+    pub nonce: u128,
 }
 
 impl PartialEq for Block {
@@ -28,7 +28,7 @@ impl PartialEq for Block {
 }
 
 impl Block {
-    pub fn new(index: u32, timestamp: String, data: BlockData, hash: String, previous_hash: String, difficuly: u128, nonce: u32) -> Block {
+    pub fn new(index: u32, timestamp: String, data: BlockData, hash: String, previous_hash: String, difficuly: u32, nonce: u128) -> Block {
         Block {
             index,
             timestamp,
@@ -46,8 +46,8 @@ impl Block {
             Ok(time) => {
                 let timestamp = format!("{:?}", time); // TODO: genesis block should just have a set timestamp
                 let hash = calculate_hash(&0, &String::new(), &timestamp, &String::new());
-                let difficulty: u128 = 0;
-                let nonce: u32 = 0;
+                let difficulty: u32 = 0;
+                let nonce: u128 = 0;
                 Ok(Block::new(0, timestamp, String::new(), hash, String::new(), difficulty, nonce))
             },
             Err(_) => Err(Error::new(ErrorKind::InvalidData, "Error getting system time"))
