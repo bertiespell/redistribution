@@ -1,6 +1,6 @@
 use std::io::{Result, Error, ErrorKind};
 
-fn hash_matches_difficulty(hash: String, difficulty: u128) -> Result<bool> {
+pub fn hash_matches_difficulty(hash: &String, difficulty: &u32) -> Result<bool> {
     dbg!(hash.as_bytes());
     let decoded_hex_result = hex::decode(hash);
     match decoded_hex_result {
@@ -18,7 +18,7 @@ fn hash_matches_difficulty(hash: String, difficulty: u128) -> Result<bool> {
                     return acc;
                 }
             });
-            Ok(leading_zeros as u128 >= difficulty)
+            Ok(leading_zeros >= *difficulty)
         },
         Err(_) => Err(Error::new(ErrorKind::InvalidData, "Could not decode hex from hash"))
     }
@@ -31,10 +31,10 @@ mod tests {
     #[test]
     fn test_matches_difficulty() {
         let test_case = hex::encode("ABCABCABC");
-        let matches = hash_matches_difficulty(test_case, 1).unwrap();
+        let matches = hash_matches_difficulty(&test_case, &1).unwrap();
         assert_eq!(matches, true);
         let test_case = hex::encode("11BCABCABC");
-        let matches = hash_matches_difficulty(test_case, 2).unwrap();
+        let matches = hash_matches_difficulty(&test_case, &2).unwrap();
         assert_eq!(matches, true);
     }
 }

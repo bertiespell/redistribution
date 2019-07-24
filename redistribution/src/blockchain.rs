@@ -45,9 +45,9 @@ impl Blockchain {
                 let timestamp = format!("{:?}", now);
                 let previous_block = self.get_latest_block()?;
                 let new_block_index = previous_block.index + 1;
-                let hash = hasher::calculate_hash(&new_block_index, &previous_block.hash, &timestamp, block_data);
                 let difficulty: u32 = 0;
                 let nonce: u128 = 0;
+                let hash = hasher::calculate_hash(&new_block_index, &previous_block.hash, &timestamp, block_data, &difficulty, &nonce);
                 Ok(Block::new(new_block_index, timestamp, block_data.to_string(), hash, previous_block.hash.clone(), difficulty, nonce))
             },
             Err(_) => Err(Error::new(ErrorKind::NotFound, "Error reporting system time"))
