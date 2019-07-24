@@ -2,6 +2,7 @@ mod blockchain;
 mod encoder;
 mod block;
 mod hasher;
+mod difficulty;
 
 pub use blockchain::Blockchain;
 pub use encoder::{Encodable, Decodable};
