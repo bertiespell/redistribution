@@ -27,7 +27,7 @@ impl PartialEq for Block {
 
 impl Block {
     pub fn genesis_block() -> Result<Block> {
-        let system_time = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH);
+        let system_time = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH); // TODO: Don't need system time here
         match system_time {
             Ok(time) => {
                 let timestamp = format!("{:?}", time);

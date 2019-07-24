@@ -28,11 +28,10 @@ impl Node {
         })))
     }
 
-    pub fn add_me(&mut self, mut stream: TcpStream) -> Result<()> {
+    pub fn add_me(&mut self, stream: &mut TcpStream) -> Result<()> {
         let message = Encoder::encode(ProtocolMessage::AddMe, self.id, &String::new())?;
 
         stream.write(&message)?;
-
         let mut buffer = [0; 512];
         let result = stream.read(&mut buffer);
         match result {
@@ -57,13 +56,12 @@ impl Node {
         }
     }
 
-    pub fn get_peers(&mut self, mut stream: TcpStream) -> Result<()> {
+    pub fn get_peers(&mut self, stream: &mut TcpStream) -> Result<()> {
         let message = Encoder::encode(ProtocolMessage::GetPeers, self.id, &String::new())?;
-
-        stream.write(&message[..])?;
-
         let mut buffer = [0; 512];
+        stream.write(&message[..])?;
         let result = stream.read(&mut buffer);
+
         match result {
             Ok(_) => {            
                 let mut decoder = Decoder::new(buffer, ProtocolMessage::PeerList);
@@ -82,7 +80,7 @@ impl Node {
         }
     }
 
-    pub fn send_transactions(&self, mut stream: TcpStream) -> Result<()> {
+    pub fn send_transactions(&self, stream: &mut TcpStream) -> Result<()> {
         let transaction = String::from("hello"); // TODO: this should be actual data!
         let message = Encoder::encode(ProtocolMessage::AddTransaction, self.id, &transaction)?;
         
@@ -95,7 +93,7 @@ impl Node {
         Ok(())
     }
 
-    pub fn get_chain(&mut self, mut stream: TcpStream) -> Result<()>  {
+    pub fn get_chain(&mut self, stream: &mut TcpStream) -> Result<()>  {
         let message = Encoder::encode(ProtocolMessage::GetBlocks, self.id, &String::new())?;
         
         stream.write(&message[..])?;
@@ -116,18 +114,21 @@ impl Node {
         }
     }
 
-    pub fn handle_incoming(&mut self, mut stream: TcpStream) -> Result<()> {
+    pub fn handle_incoming(node: &Arc<Mutex<Node>>, stream: &mut TcpStream) -> Result<()> {
         let mut buffer = [0; 512];
-        stream.read(&mut buffer)?;
+        let num_bytes = stream.read(&mut buffer)?;
+        if num_bytes == 0 {
+            return Err(Error::new(ErrorKind::ConnectionAborted, "Received 0 bytes from stream - connection aborted"));
+        }
+        let opcode = Decoder::protocol(&mut buffer); // TODO: Make buffer as long as headers - then allocate dynamic array buffer for the data
 
-        let opcode = Decoder::protocol(&mut buffer);
-        
+        let mut node = node.lock().unwrap();
         match opcode {
             Ok(ProtocolMessage::AddMe) => {
                 // TODO: ensure we're using UUID. Here we just use an incrementing ID - ideally in the future one node won't store *all* other nodes in its peers... so we'll need a smarter system
                 let node_addr = stream.peer_addr()?;
                 let mut highest_id: u128 = 1;
-                let mut peers = self.peerlist.peers.iter();
+                let mut peers = node.peerlist.peers.iter();
 
                 while let Some((peer_id, _)) = peers.next() {
                     if highest_id < *peer_id {
@@ -136,9 +137,9 @@ impl Node {
                 }
 
                 highest_id = highest_id + 1;
-                self.peerlist.peers.insert(highest_id, node_addr);
+                node.peerlist.peers.insert(highest_id, node_addr);
 
-                let message = Encoder::encode(ProtocolMessage::AddedPeer, self.id, &highest_id)?;
+                let message = Encoder::encode(ProtocolMessage::AddedPeer, node.id, &highest_id)?;
                 stream.write(&message)?;
                 // TODO: Broadcast new node to network?
                 Ok(())
@@ -146,11 +147,10 @@ impl Node {
             Ok(ProtocolMessage::GetPeers) => {
                 let mut decoder = Decoder::new(buffer, ProtocolMessage::GetPeers);
                 let peer = decoder.peer_id();
-                if self.peerlist.peers.contains_key(&peer) {
-                    let message = Encoder::encode(ProtocolMessage::PeerList, self.id, &self.peerlist)?;
+                if node.peerlist.peers.contains_key(&peer) {
+                    let message = Encoder::encode(ProtocolMessage::PeerList, node.id, &node.peerlist)?;
 
                     stream.write(&message)?;
-                    stream.flush()?;
                     Ok(())
                 } else {
                     stream.shutdown(Shutdown::Both)?;
@@ -158,9 +158,8 @@ impl Node {
                 }
             },
             Ok(ProtocolMessage::GetBlocks) => {
-                let blocks = Encoder::encode(ProtocolMessage::SendBlockchain, self.id, &self.blockchain)?;
+                let blocks = Encoder::encode(ProtocolMessage::SendBlockchain, node.id, &node.blockchain)?;
                 stream.write(&blocks)?;
-                stream.flush()?;
                 Ok(())
             },
             Ok(ProtocolMessage::AddTransaction) => {
@@ -169,14 +168,13 @@ impl Node {
                 let decoded_type = decoder.decode_json()?;
                 match decoded_type {
                     DecodedType::BlockData(data) => {
-                        let new_block = self.blockchain.generate_next_block(&data)?;
+                        let new_block = node.blockchain.generate_next_block(&data)?;
 
-                        let message = Encoder::encode(ProtocolMessage::NewBlock, self.id, &new_block)?;
+                        let message = Encoder::encode(ProtocolMessage::NewBlock, node.id, &new_block)?;
 
                         println!("New block: {:?}", new_block);
 
                         stream.write(&message)?;
-                        stream.flush()?;
                         Ok(())
                     },
                     _ => Err(Error::new(ErrorKind::InvalidData, "Wrong decoding type used in AddTransaction command"))

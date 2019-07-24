@@ -4,7 +4,7 @@ use std::thread::{JoinHandle};
 use std::process;
 use std::sync::{Arc, Mutex};
 use std::net::{TcpListener, TcpStream};
-use std::io::{Result};
+use std::io::{Result, ErrorKind};
 
 mod node;
 mod config;
@@ -29,38 +29,54 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-/// Starts a listener thread and waits
 fn intialise_listener(node: Arc<Mutex<node::Node>>, config: config::Config) -> JoinHandle<()> {
     thread::spawn(move || {
         let listener = TcpListener::bind(config.address).unwrap();
         for stream in listener.incoming() {
-            let mut node = node.lock().unwrap();
-            node.handle_incoming(stream.unwrap()).unwrap();
+            let cloned_node = Arc::clone(&node);
+            let mut stream = stream.unwrap();
+            thread::spawn(move || {
+                loop {
+                    let incoming = node::Node::handle_incoming(&cloned_node, &mut stream);
+                    match incoming {
+                        Ok(_) => {},
+                        Err(e) => {
+                            match e.kind() {
+                                ErrorKind::ConnectionAborted => {
+                                    break;
+                                },
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+            });
         }
     })
 }
 
-/// startes a thread to discover peers
 fn initalise_discovery(node: Arc<Mutex<node::Node>>, config: config::Config) -> JoinHandle<()> {
     thread::spawn(move || {
         if config.address != ROOT_NODE.parse().unwrap() {
             let mut node = node.lock().unwrap();
-            let add_me_stream = TcpStream::connect(ROOT_NODE).unwrap();
-            let initialised_node = node.add_me(add_me_stream);
+            let mut stream = TcpStream::connect(ROOT_NODE).unwrap();
+            let initialised_node = node.add_me(&mut stream);
+
             match initialised_node {
                 Ok(_) => {
-                    let get_peers_stream = TcpStream::connect(ROOT_NODE).unwrap();
-                    let peers_found = node.get_peers(get_peers_stream);
+                    let peers_found = node.get_peers(&mut stream);
                     match peers_found {
                         Ok(_) => {},
                         Err(e) => eprintln!("Failed to get list of peers: {}", e)
                     }
 
-                    let send_transaction_stream = TcpStream::connect(ROOT_NODE).unwrap();
-                    node.send_transactions(send_transaction_stream).unwrap();
+                    // TODO: Refactor - handle incoming could be set-up here after initialisation steps
 
-                    let get_blocks_stream = TcpStream::connect(ROOT_NODE).unwrap();
-                    node.get_chain(get_blocks_stream).unwrap();
+                    let mut send_transaction_stream = TcpStream::connect(ROOT_NODE).unwrap();
+                    node.send_transactions(&mut send_transaction_stream).unwrap();
+
+                    let mut get_blocks_stream = TcpStream::connect(ROOT_NODE).unwrap();
+                    node.get_chain(&mut get_blocks_stream).unwrap();
                 },
                 Err(e) => eprintln!("Failed to connect to root: {}", e)
             }
