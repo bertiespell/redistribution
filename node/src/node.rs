@@ -130,13 +130,19 @@ impl Node {
                 let decoded = decoder.decode_json();
                 match decoded {
                     Ok(DecodedType::Blockchain(blockchain)) => {
-                        assert!(Blockchain::is_chain_valid(&blockchain));
-                        println!(
-                            "Received new chain... Updating own chain with: {:?}",
-                            blockchain
-                        );
-                        self.blockchain = blockchain;
-                        Ok(vec![])
+                        if Blockchain::is_chain_valid(&blockchain) {
+                            println!(
+                                "Received new chain... Updating own chain with: {:?}",
+                                blockchain
+                            );
+                            self.blockchain = blockchain;
+                            Ok(vec![])
+                        } else {
+                            Err(Error::new(
+                                ErrorKind::InvalidData, 
+                                "Recieved invalid chain"
+                            ))
+                        }
                     }
                     Err(e) => Err(e),
                     _ => Err(Error::new(
