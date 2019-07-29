@@ -3,7 +3,7 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
 extern crate ws;
-use ws::{CloseCode, Error, Handler, Handshake, Message, Result, Sender};
+use ws::{CloseCode, Error, Handler, Handshake, Message, Result, Sender, ErrorKind};
 
 use crate::node;
 
@@ -22,23 +22,36 @@ impl Server {
 impl Handler for Server {
     fn on_open(&mut self, shake: Handshake) -> Result<()> {
         // We have a new connection, so we increment the connection counter
-        println!("Server opened...");
-        // shake.remote_addr();
-        println!("RESPONSE {:?}", shake.response);
         Ok(self.count.set(self.count.get() + 1))
     }
 
     fn on_message(&mut self, msg: Message) -> Result<()> {
-        // Tell the user the current count
-        println!("Received message {:?}", msg);
-        // self.
         println!("The number of live connections is {}", self.count.get());
-        // want to get the remote iD here...
         let mut node = self.node.lock().unwrap();
-        let result = node.handle(&mut msg.into_data()).unwrap(); // this handles incoming... might broadcast...
-        self.out.broadcast(result)
-        // Echo the message back
-        // self.out.send(result)
+        let result = node.handle(&mut msg.into_data());
+        match result {
+            Ok(message) => {
+                if message.broadcast {
+                    match message.raw_message {
+                        Some(data) => {
+                            return self.out.broadcast(data);
+                        },
+                        None => {
+                            return Err(Error::new(ErrorKind::Internal, "Asking to broadcast message with no data"));
+                        }
+                    }
+                } else {
+                    match message.raw_message {
+                        Some(data) => {
+                            return self.out.send(data);
+                        },
+                        _ => {}
+                    }
+                }
+                Ok(())
+            },
+            Err(e) => Err(Error::from(e)),
+        }
     }
 
     fn on_close(&mut self, code: CloseCode, reason: &str) {

@@ -12,8 +12,8 @@ use crate::protocol_message::ProtocolMessage;
 use peerlist::PeerList;
 
 pub struct Message {
-    broadcast: bool,
-    message: Option<Vec<u8>>,
+    pub broadcast: bool,
+    pub raw_message: Option<Vec<u8>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -53,7 +53,7 @@ impl Node {
         Ok(message)
     }
 
-    pub fn handle(&mut self, message: &mut Vec<u8>) -> Result<Vec<u8>> {
+    pub fn handle(&mut self, message: &mut Vec<u8>) -> Result<Message> {
         if message.len() == 0 {
             return Err(Error::new(
                 ErrorKind::ConnectionAborted,
@@ -80,17 +80,22 @@ impl Node {
                 self.peerlist.peers.insert(highest_id, node_addr);
 
                 let message = Encoder::encode(ProtocolMessage::AddedPeer, self.id, &highest_id)?;
-                Ok(message)
+                Ok(Message {
+                    broadcast: true,
+                    raw_message: Some(message)
+                })
             }
             Ok(ProtocolMessage::AddedPeer) => {
                 let mut decoder = Decoder::new(&mut message[..], ProtocolMessage::AddedPeer);
-                let decoder_type = decoder.decode_json();
+                let decoder_type = decoder.decode_json()?;
                 match decoder_type {
-                    Ok(DecodedType::NodeID(node_id)) => {
+                    DecodedType::NodeID(node_id) => {
                         self.id = node_id;
-                        Ok(vec![])
+                        Ok(Message {
+                            broadcast: false,
+                            raw_message: None
+                        })
                     }
-                    Err(_) => Err(Error::new(ErrorKind::Other, "Error decoding Node ID")),
                     _ => Err(Error::new(
                         ErrorKind::Other,
                         "Wrong type passed from decoder",
@@ -102,7 +107,10 @@ impl Node {
                 let peer = decoder.peer_id();
                 // if self.peerlist.peers.contains_key(&peer) {
                 let message = Encoder::encode(ProtocolMessage::PeerList, self.id, &self.peerlist)?;
-                Ok(message)
+                Ok(Message {
+                    broadcast: false,
+                    raw_message: Some(message)
+                })
                 // } else { // TODO: Handle unrecognised peer again
                 //     Err(Error::new(ErrorKind::InvalidData, "Message from unrecognised peer"))
                 // }
@@ -110,33 +118,42 @@ impl Node {
             Ok(ProtocolMessage::PeerList) => {
                 let mut decoder = Decoder::new(&mut message[..], ProtocolMessage::PeerList);
 
-                let peers = decoder.decode_json();
+                let peers = decoder.decode_json()?;
                 match peers {
-                    Ok(DecodedType::PeerList(peerlist)) => {
+                    DecodedType::PeerList(peerlist) => {
                         println!("Received peers: {:?}", peerlist);
                         self.peerlist = peerlist;
-                        Ok(vec![])
-                    }
-                    _ => Err(Error::new(ErrorKind::Other, "Did not decode PeerList")), // TODO: handle erros properly... again! (Handle error two error cases here)
+                        Ok(Message {
+                            broadcast: false,
+                            raw_message: None
+                        })
+                    },
+                    _ => Err(Error::new(ErrorKind::Other, "Did not decode PeerList")),
                 }
             }
             Ok(ProtocolMessage::GetBlocks) => {
-                let blocks =
+                let message =
                     Encoder::encode(ProtocolMessage::SendBlockchain, self.id, &self.blockchain)?;
-                Ok(blocks)
+                Ok(Message {
+                    broadcast: false,
+                    raw_message: Some(message)
+                })
             }
             Ok(ProtocolMessage::SendBlockchain) => {
                 let mut decoder = Decoder::new(&mut message[..], ProtocolMessage::SendBlockchain);
-                let decoded = decoder.decode_json();
+                let decoded = decoder.decode_json()?;
                 match decoded {
-                    Ok(DecodedType::Blockchain(blockchain)) => {
+                    DecodedType::Blockchain(blockchain) => {
                         if Blockchain::is_chain_valid(&blockchain) {
                             println!(
                                 "Received new chain: {:?}",
                                 blockchain
                             );
                             self.blockchain = blockchain;
-                            Ok(vec![])
+                            Ok(Message {
+                                broadcast: false,
+                                raw_message: None
+                            })
                         } else {
                             Err(Error::new(
                                 ErrorKind::InvalidData, 
@@ -144,7 +161,6 @@ impl Node {
                             ))
                         }
                     }
-                    Err(e) => Err(e),
                     _ => Err(Error::new(
                         ErrorKind::InvalidData,
                         "Wrong decoding type used in SendBlockchain command",
@@ -162,7 +178,10 @@ impl Node {
                         let message =
                             Encoder::encode(ProtocolMessage::NewBlock, self.id, &new_block)?;
 
-                        Ok(message)
+                        Ok(Message {
+                            broadcast: true,
+                            raw_message: Some(message)
+                        })
                     }
                     _ => Err(Error::new(
                         ErrorKind::InvalidData,
@@ -171,7 +190,10 @@ impl Node {
                 }
             }
             Ok(ProtocolMessage::NewBlock) => {
-                Ok(vec![]) //TODO: Should be an option of a vec!
+                Ok(Message {
+                    broadcast: false,
+                    raw_message: None
+                })
             }
             Err(e) => Err(e),
             Ok(_) => Err(Error::new(

@@ -119,7 +119,7 @@ impl<'a> Decoder<'a> {
                 let raw_data = self.decode_raw()?;
                 let blockchain = Blockchain::decode(&raw_data)?;
                 Ok(DecodedType::Blockchain(blockchain))
-            }
+            },
             _ => Err(Error::new(
                 ErrorKind::Other,
                 "No decoder available for command",

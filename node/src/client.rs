@@ -2,7 +2,7 @@ extern crate ws;
 use crate::node;
 use std::sync::{Arc, Mutex};
 
-use ws::{Error, Handler, Handshake, Message, Result, Sender};
+use ws::{Error, ErrorKind, Handler, Handshake, Message, Result, Sender};
 
 // Our Handler struct.
 // Here we explicity indicate that the Client needs a Sender,
@@ -50,9 +50,23 @@ impl Handler for Client {
         let mut node = self.node.lock().unwrap();
         let result = node.handle(&mut msg.into_data());
         match result {
-            Ok(data) => {
-                if data.len() > 0 {
-                    self.out.broadcast(data)?;
+            Ok(message) => {
+                if message.broadcast {
+                    match message.raw_message {
+                        Some(data) => {
+                            return self.out.broadcast(data);
+                        },
+                        None => {
+                            return Err(Error::new(ErrorKind::Internal, "Asking to broadcast message with no data"));
+                        }
+                    }
+                } else {
+                    match message.raw_message {
+                        Some(data) => {
+                            return self.out.send(data);
+                        },
+                        _ => {}
+                    }
                 }
                 Ok(())
             }
