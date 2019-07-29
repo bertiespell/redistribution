@@ -45,6 +45,9 @@ fn main() {
             client::Client::new(out, another_clone)
         })
         .unwrap();
+    } else {
+        let mut node = node.lock().unwrap();
+        node.id = 1;
     }
 
     listening_thread.join().unwrap();

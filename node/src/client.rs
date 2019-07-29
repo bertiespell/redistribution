@@ -48,7 +48,7 @@ impl Handler for Client {
     // and returns a `Result<()>`.
     fn on_message(&mut self, msg: Message) -> Result<()> {
         let mut node = self.node.lock().unwrap();
-        let result = node.handle(&mut msg.into_data());
+        let result = node.handle_message(&mut msg.into_data());
         match result {
             Ok(message) => {
                 if message.broadcast {

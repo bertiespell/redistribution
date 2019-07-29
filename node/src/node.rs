@@ -53,7 +53,7 @@ impl Node {
         Ok(message)
     }
 
-    pub fn handle(&mut self, message: &mut Vec<u8>) -> Result<Message> {
+    pub fn handle_message(&mut self, message: &mut Vec<u8>) -> Result<Message> {
         if message.len() == 0 {
             return Err(Error::new(
                 ErrorKind::ConnectionAborted,
