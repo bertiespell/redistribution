@@ -1,10 +1,7 @@
-use std::io::prelude::*;
 use std::io::{Result, Error, ErrorKind};
-use std::net::{TcpStream, Shutdown};
 use redistribution::{Blockchain};
 use std::sync::{Arc, Mutex};
 use serde::{Serialize, Deserialize};
-use std::net::{SocketAddr};
 static ROOT_NODE: &str = "127.0.0.1:7878";
 
 use crate::encoder::{Encoder};
@@ -35,7 +32,7 @@ impl Node {
         })))
     }
 
-    pub fn add_me(&mut self, stream: &mut TcpStream) -> Result<Vec<u8>> {
+    pub fn add_me(&mut self) -> Result<Vec<u8>> {
         let message = Encoder::encode(ProtocolMessage::AddMe, self.id, &String::new())?;
         Ok(message)
     }
@@ -123,11 +120,9 @@ impl Node {
             }
             Ok(ProtocolMessage::GetBlocks) => {
                 let blocks = Encoder::encode(ProtocolMessage::SendBlockchain, self.id, &self.blockchain)?;
-                // stream.write(&blocks)?;
                 Ok(blocks)
             },
             Ok(ProtocolMessage::SendBlockchain) => {
-                println!("Received SendBloclchain message..");
                 let mut decoder = Decoder::new(&mut message[..], ProtocolMessage::SendBlockchain);
                 let decoded = decoder.decode_json();
                 match decoded {
@@ -151,14 +146,12 @@ impl Node {
 
                         let message = Encoder::encode(ProtocolMessage::NewBlock, self.id, &new_block)?;
 
-                        println!("New block: {:?}", new_block);
                         Ok(message)
                     },
                     _ => Err(Error::new(ErrorKind::InvalidData, "Wrong decoding type used in AddTransaction command"))
                 }
             },
             Ok(ProtocolMessage::NewBlock) => {
-                println!("New Block received");
                 Ok(vec!()) //TODO: Should be an option of a vec!
             }
             Err(e) => Err(e),

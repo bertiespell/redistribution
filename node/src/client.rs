@@ -1,8 +1,6 @@
 extern crate ws;
-use crate::encoder::{Encoder};
 use std::sync::{Arc, Mutex};
 use crate::node;
-use crate::protocol_message::ProtocolMessage;
 
 use ws::{Handler, Sender, Handshake, Result, Message, Error};
 
@@ -36,11 +34,10 @@ impl Handler for Client {
         // Now we don't need to call unwrap since `on_open` returns a `Result<()>`.
         // If this call fails, it will only result in this connection disconnecting.
         
-        // if it's not the root node then...
         let mut node = self.node.lock().unwrap();
-        println!("Sending message from client... {:?}", Encoder::encode(ProtocolMessage::AddMe, node.id, &String::new())?);
-        // self.out.broadcast(Encoder::encode(ProtocolMessage::AddMe, node.id, &String::new())?);
 
+        let add_me_message = node.add_me().unwrap();
+        self.out.send(add_me_message)?;
         let get_peers_message = node.get_peers().unwrap();
         self.out.send(get_peers_message)?;
 
@@ -54,24 +51,16 @@ impl Handler for Client {
     // `on_message` is roughly equivalent to the Handler closure. It takes a `Message`
     // and returns a `Result<()>`.
     fn on_message(&mut self, msg: Message) -> Result<()> {
-        // Close the connection when we get a response from the server
-        println!("Got message: {}", msg);
         let mut node = self.node.lock().unwrap();
-        let result = node.handle(&mut msg.into_data()); // this handles incoming... might broadcast...
+        let result = node.handle(&mut msg.into_data());
         match result {
             Ok(data) => {
                 if data.len() > 0 {
-                    self.out.broadcast(data);
+                    self.out.broadcast(data)?;
                 }
                 Ok(())
             },
-            Err(e) => {
-                println!("{:?}", e);
-                Err(Error::new(ws::ErrorKind::Internal, "whoooops"))
-            }
+            Err(e) => Err(Error::from(e))
         }
-        // Err("No result to send..")
-        // self.out.
-        // self.out.close(CloseCode::Normal)
     }
 }

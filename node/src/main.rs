@@ -32,7 +32,7 @@ fn main() {
     let node = node::Node::new().unwrap();
   
     let cloned_node = Arc::clone(&node);
-    let newer = thread::spawn(move || {
+    let listening_thread = thread::spawn(move || {
         let count = Rc::new(Cell::new(0));
         listen(config.address, |out| { 
             let cloned_again = Arc::clone(&cloned_node);
@@ -47,7 +47,7 @@ fn main() {
             let another_clone = Arc::clone(&node);
             client::Client::new(out, another_clone)
         }).unwrap();
-  }
+    }
 
-  newer.join().unwrap();
+    listening_thread.join().unwrap();
 } 
