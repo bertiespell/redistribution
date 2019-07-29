@@ -35,57 +35,14 @@ impl Node {
         })))
     }
 
-    pub fn add_me(&mut self, stream: &mut TcpStream) -> Result<()> {
+    pub fn add_me(&mut self, stream: &mut TcpStream) -> Result<Vec<u8>> {
         let message = Encoder::encode(ProtocolMessage::AddMe, self.id, &String::new())?;
-
-        stream.write(&message)?;
-        let mut buffer = [0; 512];
-        let result = stream.read(&mut buffer);
-        match result {
-            Ok(_) => {
-                // TODO: pull the node ID out of the encoder
-                let mut decoder = Decoder::new(&mut buffer, ProtocolMessage::AddedPeer);
-                let decoder_type = decoder.decode_json();
-                match decoder_type {
-                    Ok(DecodedType::NodeID(node_id)) => {
-                        self.id = node_id;
-                        Ok(())
-                    },
-                    Err(_) => {
-                        Err(Error::new(ErrorKind::Other, "Error decoding Node ID"))
-                    },
-                    _ => {
-                        Err(Error::new(ErrorKind::Other, "Wrong type passed from decoder"))
-                    }
-                }
-            },
-            Err(e) => Err(e),
-        }
+        Ok(message)
     }
 
     pub fn get_peers(&mut self) -> Result<Vec<u8>> {
         let message = Encoder::encode(ProtocolMessage::GetPeers, self.id, &String::new())?;
         Ok(message)
-        // let mut buffer = [0; 512];
-        // stream.write(&message[..])?;
-        // let result = stream.read(&mut buffer);
-
-        // match result {
-        //     Ok(_) => {            
-        //         let mut decoder = Decoder::new(&mut buffer, ProtocolMessage::PeerList);
-
-        //         let peers = decoder.decode_json();
-        //         match peers {
-        //             Ok(DecodedType::PeerList(peerlist)) => {
-        //                 self.peerlist = peerlist;
-        //                 Ok(())
-        //             },
-        //             _ => Err(Error::new(ErrorKind::Other, "Did not decode PeerList")) // TODO: handle erros properly... again! (Handle error two error cases here)
-        //         }
-                
-        //     },
-        //     Err(e) => Err(e),
-        // }
     }
 
     pub fn send_transactions(&self) -> Result<Vec<u8>> {
