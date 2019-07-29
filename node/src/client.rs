@@ -1,8 +1,8 @@
 extern crate ws;
-use std::sync::{Arc, Mutex};
 use crate::node;
+use std::sync::{Arc, Mutex};
 
-use ws::{Handler, Sender, Handshake, Result, Message, Error};
+use ws::{Error, Handler, Handshake, Message, Result, Sender};
 
 // Our Handler struct.
 // Here we explicity indicate that the Client needs a Sender,
@@ -14,17 +14,13 @@ pub struct Client {
 
 impl Client {
     pub fn new(out: Sender, node: Arc<Mutex<node::Node>>) -> Client {
-        Client {
-            out,
-            node,
-        }
+        Client { out, node }
     }
 }
 
 // We implement the Handler trait for Client so that we can get more
 // fine-grained control of the connection.
 impl Handler for Client {
-
     // `on_open` will be called only after the WebSocket handshake is successful
     // so at this point we know that the connection is ready to send/receive messages.
     // We ignore the `Handshake` for now, but you could also use this method to setup
@@ -33,7 +29,7 @@ impl Handler for Client {
     fn on_open(&mut self, _: Handshake) -> Result<()> {
         // Now we don't need to call unwrap since `on_open` returns a `Result<()>`.
         // If this call fails, it will only result in this connection disconnecting.
-        
+
         let mut node = self.node.lock().unwrap();
 
         let add_me_message = node.add_me().unwrap();
@@ -59,8 +55,8 @@ impl Handler for Client {
                     self.out.broadcast(data)?;
                 }
                 Ok(())
-            },
-            Err(e) => Err(Error::from(e))
+            }
+            Err(e) => Err(Error::from(e)),
         }
     }
 }

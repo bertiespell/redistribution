@@ -1,15 +1,28 @@
 use crate::block;
-use crate::hasher;
 use crate::difficulty;
+use crate::hasher;
 use block::{Block, BlockData};
-use hasher::calculate_hash;
 use difficulty::hash_matches_difficulty;
+use hasher::calculate_hash;
 
-fn find_block(index: u32, previous_hash: String, timestamp: String, data: BlockData, difficulty: u32) -> Block {
+fn find_block(
+    index: u32,
+    previous_hash: String,
+    timestamp: String,
+    data: BlockData,
+    difficulty: u32,
+) -> Block {
     let mut nonce: u128 = 0;
 
     loop {
-        let hash: String = calculate_hash(&index, &previous_hash, &timestamp, &data, &difficulty, &nonce);
+        let hash: String = calculate_hash(
+            &index,
+            &previous_hash,
+            &timestamp,
+            &data,
+            &difficulty,
+            &nonce,
+        );
 
         if hash_matches_difficulty(&hash, &difficulty).unwrap() {
             break Block {
@@ -19,8 +32,8 @@ fn find_block(index: u32, previous_hash: String, timestamp: String, data: BlockD
                 hash,
                 previous_hash,
                 difficulty,
-                nonce
-            }
+                nonce,
+            };
         }
         nonce += 1;
     }

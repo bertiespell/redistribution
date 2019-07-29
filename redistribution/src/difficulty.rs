@@ -1,4 +1,4 @@
-use std::io::{Result, Error, ErrorKind};
+use std::io::{Error, ErrorKind, Result};
 
 pub fn hash_matches_difficulty(hash: &String, difficulty: &u32) -> Result<bool> {
     dbg!(hash.as_bytes());
@@ -7,22 +7,28 @@ pub fn hash_matches_difficulty(hash: &String, difficulty: &u32) -> Result<bool> 
         Ok(decoded_hex) => {
             let mut last_found = true;
             let mut once = true;
-            let leading_zeros = decoded_hex.iter().map(|x| x.leading_zeros()).fold(0, |acc, x| {
-                if x == 8 && last_found {
-                    return acc + x;
-                } else if once {
-                    last_found = false;
-                    once = false;
-                    return acc + x;
-                } else {
-                    return acc;
-                }
-            });
+            let leading_zeros = decoded_hex
+                .iter()
+                .map(|x| x.leading_zeros())
+                .fold(0, |acc, x| {
+                    if x == 8 && last_found {
+                        return acc + x;
+                    } else if once {
+                        last_found = false;
+                        once = false;
+                        return acc + x;
+                    } else {
+                        return acc;
+                    }
+                });
             Ok(leading_zeros >= *difficulty)
-        },
-        Err(_) => Err(Error::new(ErrorKind::InvalidData, "Could not decode hex from hash"))
+        }
+        Err(_) => Err(Error::new(
+            ErrorKind::InvalidData,
+            "Could not decode hex from hash",
+        )),
     }
-} 
+}
 
 #[cfg(test)]
 mod tests {

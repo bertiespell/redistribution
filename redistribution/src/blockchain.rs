@@ -1,16 +1,16 @@
-use std::time::SystemTime;
-use std::collections::VecDeque;
-use serde::{Serialize, Deserialize};
-use serde_json;
-use crate::Block;
-use crate::hasher;
 use crate::encoder;
-use encoder::{Encodable, Decodable};
-use std::io::{Result, Error, ErrorKind};
+use crate::hasher;
+use crate::Block;
+use encoder::{Decodable, Encodable};
+use serde::{Deserialize, Serialize};
+use serde_json;
+use std::collections::VecDeque;
+use std::io::{Error, ErrorKind, Result};
+use std::time::SystemTime;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Blockchain {
-    blocks: VecDeque<Block>
+    blocks: VecDeque<Block>,
 }
 
 impl Blockchain {
@@ -19,9 +19,7 @@ impl Blockchain {
         let mut blocks = VecDeque::new();
         blocks.push_back(genesis_block);
 
-        Ok(Blockchain { 
-            blocks
-        })
+        Ok(Blockchain { blocks })
     }
 
     pub fn add_block(&mut self, block: Block) -> Result<()> {
@@ -33,8 +31,11 @@ impl Blockchain {
                 } else {
                     Err(Error::new(ErrorKind::InvalidData, "Invalid block"))
                 }
-            },
-            None => Err(Error::new(ErrorKind::InvalidData, "No last block to append to"))
+            }
+            None => Err(Error::new(
+                ErrorKind::InvalidData,
+                "No last block to append to",
+            )),
         }
     }
 
@@ -47,10 +48,28 @@ impl Blockchain {
                 let new_block_index = previous_block.index + 1;
                 let difficulty: u32 = 0;
                 let nonce: u128 = 0;
-                let hash = hasher::calculate_hash(&new_block_index, &previous_block.hash, &timestamp, block_data, &difficulty, &nonce);
-                Ok(Block::new(new_block_index, timestamp, block_data.to_string(), hash, previous_block.hash.clone(), difficulty, nonce))
-            },
-            Err(_) => Err(Error::new(ErrorKind::NotFound, "Error reporting system time"))
+                let hash = hasher::calculate_hash(
+                    &new_block_index,
+                    &previous_block.hash,
+                    &timestamp,
+                    block_data,
+                    &difficulty,
+                    &nonce,
+                );
+                Ok(Block::new(
+                    new_block_index,
+                    timestamp,
+                    block_data.to_string(),
+                    hash,
+                    previous_block.hash.clone(),
+                    difficulty,
+                    nonce,
+                ))
+            }
+            Err(_) => Err(Error::new(
+                ErrorKind::NotFound,
+                "Error reporting system time",
+            )),
         }
     }
 
@@ -58,7 +77,10 @@ impl Blockchain {
         let last_block_result = self.blocks.back();
         match last_block_result {
             Some(block) => Ok(block),
-            None => Err(Error::new(ErrorKind::NotFound, "Unable to locate last block"))
+            None => Err(Error::new(
+                ErrorKind::NotFound,
+                "Unable to locate last block",
+            )),
         }
     }
 
@@ -74,8 +96,9 @@ impl Blockchain {
     }
 
     pub fn is_chain_valid(blockchain: &Blockchain) -> bool {
-        // TODO: need to check genesis block somehow   
-        blockchain.blocks
+        // TODO: need to check genesis block somehow
+        blockchain
+            .blocks
             .iter()
             .skip(1)
             .zip(blockchain.blocks.iter())
@@ -83,7 +106,10 @@ impl Blockchain {
             .fold(true, |x, y| x && y)
     }
 
-    pub fn determine_longest_chain<'a>(first_blockchain: &'a Blockchain, second_blockchain: &'a Blockchain) -> Result<&'a Blockchain> {
+    pub fn determine_longest_chain<'a>(
+        first_blockchain: &'a Blockchain,
+        second_blockchain: &'a Blockchain,
+    ) -> Result<&'a Blockchain> {
         let last_block_in_first_chain = first_blockchain.blocks.back();
         match last_block_in_first_chain {
             Some(first_block) => {
@@ -94,11 +120,17 @@ impl Blockchain {
                             return Ok(first_blockchain);
                         }
                         Ok(second_blockchain)
-                    },
-                    None => Err(Error::new(ErrorKind::NotFound, "Unable to locate last block in second chain"))
+                    }
+                    None => Err(Error::new(
+                        ErrorKind::NotFound,
+                        "Unable to locate last block in second chain",
+                    )),
                 }
-            },
-            None => Err(Error::new(ErrorKind::NotFound, "Unable to locate last block in first chain"))
+            }
+            None => Err(Error::new(
+                ErrorKind::NotFound,
+                "Unable to locate last block in first chain",
+            )),
         }
     }
 }
@@ -117,8 +149,11 @@ impl Decodable for Blockchain {
             Ok(json_string) => {
                 let deserialized: Blockchain = serde_json::from_str(&json_string)?;
                 Ok(deserialized)
-            },
-            Err(_) => Err(Error::new(ErrorKind::InvalidData, "Unable to decode Blockchain - bytes not valid utf8"))
+            }
+            Err(_) => Err(Error::new(
+                ErrorKind::InvalidData,
+                "Unable to decode Blockchain - bytes not valid utf8",
+            )),
         }
     }
 }

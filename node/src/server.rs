@@ -1,9 +1,9 @@
-use std::rc::Rc;
 use std::cell::Cell;
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
 extern crate ws;
-use ws::{Handler, Sender, Handshake, Result, Message, CloseCode, Error};
+use ws::{CloseCode, Error, Handler, Handshake, Message, Result, Sender};
 
 use crate::node;
 
@@ -15,16 +15,11 @@ pub struct Server {
 
 impl Server {
     pub fn new(out: Sender, count: Rc<Cell<u32>>, node: Arc<Mutex<node::Node>>) -> Server {
-        Server {
-            out,
-            count,
-            node,
-        }
+        Server { out, count, node }
     }
 }
 
 impl Handler for Server {
-
     fn on_open(&mut self, shake: Handshake) -> Result<()> {
         // We have a new connection, so we increment the connection counter
         println!("Server opened...");
@@ -49,9 +44,10 @@ impl Handler for Server {
     fn on_close(&mut self, code: CloseCode, reason: &str) {
         match code {
             CloseCode::Normal => println!("The client is done with the connection."),
-            CloseCode::Away   => println!("The client is leaving the site."),
-            CloseCode::Abnormal => println!(
-                "Closing handshake failed! Unable to obtain closing status from client."),
+            CloseCode::Away => println!("The client is leaving the site."),
+            CloseCode::Abnormal => {
+                println!("Closing handshake failed! Unable to obtain closing status from client.")
+            }
             _ => println!("The client encountered an error: {}", reason),
         }
 
@@ -62,5 +58,4 @@ impl Handler for Server {
     fn on_error(&mut self, err: Error) {
         println!("The server encountered an error: {:?}", err);
     }
-
 }

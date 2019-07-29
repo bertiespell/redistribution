@@ -1,18 +1,18 @@
+use redistribution::{Decodable, Encodable};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::net::{SocketAddr};
-use serde::{Serialize, Deserialize};
-use redistribution::{Encodable, Decodable};
-use std::io::{Result, Error, ErrorKind};
+use std::io::{Error, ErrorKind, Result};
+use std::net::SocketAddr;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PeerList {
-    pub peers: HashMap<u128, SocketAddr>
+    pub peers: HashMap<u128, SocketAddr>,
 }
 
 impl PeerList {
     pub fn new() -> PeerList {
         PeerList {
-            peers:  HashMap::new()
+            peers: HashMap::new(),
         }
     }
 }
@@ -30,11 +30,12 @@ impl Decodable for PeerList {
         match decoded_json_result {
             Ok(decoded_json) => {
                 let peers: HashMap<u128, SocketAddr> = serde_json::from_str(&decoded_json)?;
-                Ok(PeerList {
-                    peers
-                })
-            },
-            Err(_) => Err(Error::new(ErrorKind::InvalidData, "Failed to decode Peerlist - invalid utf8"))
+                Ok(PeerList { peers })
+            }
+            Err(_) => Err(Error::new(
+                ErrorKind::InvalidData,
+                "Failed to decode Peerlist - invalid utf8",
+            )),
         }
     }
 }

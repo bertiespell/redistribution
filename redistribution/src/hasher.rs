@@ -1,6 +1,13 @@
 use openssl::sha;
 
-pub fn calculate_hash(index: &u32, previous_hash: &str, timestamp: &str, data: &str, difficulty: &u32,nonce: &u128) -> String {
+pub fn calculate_hash(
+    index: &u32,
+    previous_hash: &str,
+    timestamp: &str,
+    data: &str,
+    difficulty: &u32,
+    nonce: &u128,
+) -> String {
     let mut hasher = sha::Sha256::new();
     hasher.update(&index.to_be_bytes());
     hasher.update(&previous_hash.as_bytes());

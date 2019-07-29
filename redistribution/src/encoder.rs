@@ -1,4 +1,4 @@
-use std::io::{Result, Error, ErrorKind};
+use std::io::{Error, ErrorKind, Result};
 
 impl Encodable for u128 {
     fn encode(&self) -> Result<Vec<u8>> {
@@ -14,8 +14,11 @@ impl Decodable for u128 {
             Ok(json_string) => {
                 let deserialized: u128 = serde_json::from_str(&json_string)?;
                 Ok(deserialized)
-            },
-            Err(_) => Err(Error::new(ErrorKind::InvalidData, "Unable to decode u128 - bytes not valid utf8"))
+            }
+            Err(_) => Err(Error::new(
+                ErrorKind::InvalidData,
+                "Unable to decode u128 - bytes not valid utf8",
+            )),
         }
     }
 }
@@ -34,8 +37,11 @@ impl Decodable for String {
             Ok(json_string) => {
                 let deserialized: String = serde_json::from_str(&json_string)?;
                 Ok(deserialized)
-            },
-            Err(_) => Err(Error::new(ErrorKind::InvalidData, "Unable to decode String - bytes not valid utf8"))
+            }
+            Err(_) => Err(Error::new(
+                ErrorKind::InvalidData,
+                "Unable to decode String - bytes not valid utf8",
+            )),
         }
     }
 }
