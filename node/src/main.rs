@@ -1,10 +1,12 @@
 use std::env;
 use std::thread;
-use std::thread::{JoinHandle};
 use std::process;
-use std::sync::{Arc, Mutex};
-use std::net::{TcpListener, TcpStream};
-use std::io::{Result, ErrorKind};
+use std::sync::{Arc};
+use std::rc::Rc;
+use std::cell::Cell;
+
+extern crate ws;
+use ws::{connect, listen};
 
 mod node;
 mod config;
@@ -12,79 +14,40 @@ mod protocol_message;
 mod encoder;
 mod decoder;
 mod peerlist;
+mod server;
+mod client;
 
 static ROOT_NODE: &str = "127.0.0.1:7878";
 
-fn main() -> Result<()> {
-    let config = config::Config::new(env::args()).unwrap_or_else(|err| {
+fn main() {
+  // Cell gives us interior mutability so we can increment
+  // or decrement the count between handlers.
+  // Rc is a reference-counted box for sharing the count between handlers
+  // since each handler needs to own its contents.
+  let config = config::Config::new(env::args()).unwrap_or_else(|err| {
         eprintln!("Problem parsing arguments: {}", err);
         process::exit(1)
     });
-    let node = node::Node::new()?;
 
-    let listener_thread = intialise_listener(Arc::clone(&node), config);
-    let discovery_thread = initalise_discovery(Arc::clone(&node), config);
-    discovery_thread.join().unwrap();
-    listener_thread.join().unwrap();
-    Ok(())
-}
+    let node = node::Node::new().unwrap();
+  
+    let cloned_node = Arc::clone(&node);
+    let newer = thread::spawn(move || {
+        let count = Rc::new(Cell::new(0));
+        listen(config.address, |out| { 
+            let cloned_again = Arc::clone(&cloned_node);
+            server::Server::new(out, count.clone(), cloned_again)
+        }).unwrap();
+    });
 
-fn intialise_listener(node: Arc<Mutex<node::Node>>, config: config::Config) -> JoinHandle<()> {
-    thread::spawn(move || {
-        let listener = TcpListener::bind(config.address).unwrap();
-        for stream in listener.incoming() {
-            let cloned_node = Arc::clone(&node);
-            let mut stream = stream.unwrap();
-            thread::spawn(move || {
-                loop {
-                    let incoming = node::Node::handle_incoming(&cloned_node, &mut stream);
-                    match incoming {
-                        Ok(_) => {},
-                        Err(e) => {
-                            match e.kind() {
-                                ErrorKind::ConnectionAborted => {
-                                    break;
-                                },
-                                _ => {}
-                            }
-                        }
-                    }
-                }
-            });
-        }
-    })
-}
+    if config.address != ROOT_NODE.parse().unwrap() { 
+        let mut url = String::from("ws://");
+        url.push_str(&ROOT_NODE.parse::<String>().unwrap());
+        connect(url, |out| {
+            let another_clone = Arc::clone(&node);
+            client::Client::new(out, another_clone)
+        }).unwrap();
+  }
 
-fn initalise_discovery(node: Arc<Mutex<node::Node>>, config: config::Config) -> JoinHandle<()> {
-    thread::spawn(move || {
-        if config.address != ROOT_NODE.parse().unwrap() {
-            let mut node = node.lock().unwrap();
-            let mut stream = TcpStream::connect(ROOT_NODE).unwrap();
-            let initialised_node = node.add_me(&mut stream);
-
-            match initialised_node {
-                Ok(_) => {
-                    let peers_found = node.get_peers(&mut stream);
-                    match peers_found {
-                        Ok(_) => {},
-                        Err(e) => eprintln!("Failed to get list of peers: {}", e)
-                    }
-
-                    // TODO: Refactor - handle incoming could be set-up here after initialisation steps
-
-                    let mut send_transaction_stream = TcpStream::connect(ROOT_NODE).unwrap();
-                    node.send_transactions(&mut send_transaction_stream).unwrap();
-
-                    let mut get_blocks_stream = TcpStream::connect(ROOT_NODE).unwrap();
-                    node.get_chain(&mut get_blocks_stream).unwrap();
-                },
-                Err(e) => eprintln!("Failed to connect to root: {}", e)
-            }
-            
-        } else {
-            let mut node = node.lock().unwrap();
-            node.id = 1;
-        }
-        println!("Client initialised on: {}", &config.address);
-    })
-}
+  newer.join().unwrap();
+} 

@@ -20,8 +20,8 @@ pub enum Headers {
 /// Uses the following encoding schema
 ///     First 4 bytes: Opcode
 ///     Second 16 bytes: Opcode
-pub struct Decoder { 
-    raw_bytes: [u8; 512],
+pub struct Decoder<'a> { 
+    raw_bytes: &'a mut [u8],
     protocol: ProtocolMessage
 }
 
@@ -40,8 +40,8 @@ pub enum DecodedType {
 /// ... Data
 /// 
 /// Uses Big Endian
-impl Decoder {
-    pub fn new(raw_bytes: [u8; 512], protocol: ProtocolMessage) -> Decoder {
+impl <'a> Decoder<'a> {
+    pub fn new(raw_bytes: &'a mut [u8], protocol: ProtocolMessage) -> Decoder {
         Decoder {
             raw_bytes,
             protocol
@@ -49,22 +49,7 @@ impl Decoder {
     }
 
     pub fn protocol(raw_bytes: &mut [u8]) -> Result<ProtocolMessage> {
-        let mut opcode = [0; 4];
-        opcode.swap_with_slice(&mut raw_bytes[Headers::ProtocolType as usize..Headers::PeerEncoding as usize]);
-        if opcode == ProtocolMessage::GetBlocks.as_bytes() {
-            return Ok(ProtocolMessage::GetBlocks);
-        } else if opcode == ProtocolMessage::AddMe.as_bytes() {
-            return Ok(ProtocolMessage::AddMe);
-        } else if opcode == ProtocolMessage::GetPeers.as_bytes() {
-            return Ok(ProtocolMessage::GetPeers);
-        } else if opcode == ProtocolMessage::NewBlock.as_bytes() {
-            return Ok(ProtocolMessage::NewBlock);
-        } else if opcode == ProtocolMessage::AddTransaction.as_bytes() {
-            return Ok(ProtocolMessage::AddTransaction);
-        } else if opcode == ProtocolMessage::AddedPeer.as_bytes() {
-            return Ok(ProtocolMessage::AddedPeer);
-        }
-       Err(Error::new(ErrorKind::Other, "Unknown Protocol"))
+        ProtocolMessage::from_bytes(&mut raw_bytes[Headers::ProtocolType as usize..Headers::PeerEncoding as usize])
     }
 
     /// Reads raw data passed to parser
@@ -124,7 +109,7 @@ impl Decoder {
                 let blockchain = Blockchain::decode(&raw_data)?;
                 Ok(DecodedType::Blockchain(blockchain))
             },
-            _ => Err(Error::new(ErrorKind::Other, "No decoder availabel for command")),
+            _ => Err(Error::new(ErrorKind::Other, "No decoder available for command")),
         }
     }
 }
