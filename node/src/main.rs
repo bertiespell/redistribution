@@ -20,10 +20,6 @@ mod server;
 static ROOT_NODE: &str = "127.0.0.1:7878";
 
 fn main() {
-    // Cell gives us interior mutability so we can increment
-    // or decrement the count between handlers.
-    // Rc is a reference-counted box for sharing the count between handlers
-    // since each handler needs to own its contents.
     let config = config::Config::new(env::args()).unwrap_or_else(|err| {
         eprintln!("Problem parsing arguments: {}", err);
         process::exit(1)

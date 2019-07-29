@@ -108,12 +108,12 @@ impl Node {
                 // }
             }
             Ok(ProtocolMessage::PeerList) => {
-                println!("Peerlist received");
                 let mut decoder = Decoder::new(&mut message[..], ProtocolMessage::PeerList);
 
                 let peers = decoder.decode_json();
                 match peers {
                     Ok(DecodedType::PeerList(peerlist)) => {
+                        println!("Received peers: {:?}", peerlist);
                         self.peerlist = peerlist;
                         Ok(vec![])
                     }
@@ -132,7 +132,7 @@ impl Node {
                     Ok(DecodedType::Blockchain(blockchain)) => {
                         if Blockchain::is_chain_valid(&blockchain) {
                             println!(
-                                "Received new chain... Updating own chain with: {:?}",
+                                "Received new chain: {:?}",
                                 blockchain
                             );
                             self.blockchain = blockchain;
