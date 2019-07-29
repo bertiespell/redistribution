@@ -45,7 +45,9 @@ impl ProtocolMessage {
             return Ok(ProtocolMessage::AddTransaction);
         } else if opcode == ProtocolMessage::AddedPeer.as_bytes() {
             return Ok(ProtocolMessage::AddedPeer);
-        } else if opcode == ProtocolMessage::SendBlockchain.as_bytes() {
+        } else if opcode == ProtocolMessage::PeerList.as_bytes() {
+            return Ok(ProtocolMessage::PeerList);
+        }  else if opcode == ProtocolMessage::SendBlockchain.as_bytes() {
             return Ok(ProtocolMessage::SendBlockchain);
         }
        Err(Error::new(ErrorKind::Other, "Unknown Protocol"))

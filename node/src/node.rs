@@ -63,28 +63,29 @@ impl Node {
         }
     }
 
-    pub fn get_peers(&mut self, stream: &mut TcpStream) -> Result<()> {
+    pub fn get_peers(&mut self) -> Result<Vec<u8>> {
         let message = Encoder::encode(ProtocolMessage::GetPeers, self.id, &String::new())?;
-        let mut buffer = [0; 512];
-        stream.write(&message[..])?;
-        let result = stream.read(&mut buffer);
+        Ok(message)
+        // let mut buffer = [0; 512];
+        // stream.write(&message[..])?;
+        // let result = stream.read(&mut buffer);
 
-        match result {
-            Ok(_) => {            
-                let mut decoder = Decoder::new(&mut buffer, ProtocolMessage::PeerList);
+        // match result {
+        //     Ok(_) => {            
+        //         let mut decoder = Decoder::new(&mut buffer, ProtocolMessage::PeerList);
 
-                let peers = decoder.decode_json();
-                match peers {
-                    Ok(DecodedType::PeerList(peerlist)) => {
-                        self.peerlist = peerlist;
-                        Ok(())
-                    },
-                    _ => Err(Error::new(ErrorKind::Other, "Did not decode PeerList")) // TODO: handle erros properly... again! (Handle error two error cases here)
-                }
+        //         let peers = decoder.decode_json();
+        //         match peers {
+        //             Ok(DecodedType::PeerList(peerlist)) => {
+        //                 self.peerlist = peerlist;
+        //                 Ok(())
+        //             },
+        //             _ => Err(Error::new(ErrorKind::Other, "Did not decode PeerList")) // TODO: handle erros properly... again! (Handle error two error cases here)
+        //         }
                 
-            },
-            Err(e) => Err(e),
-        }
+        //     },
+        //     Err(e) => Err(e),
+        // }
     }
 
     pub fn send_transactions(&self) -> Result<Vec<u8>> {
@@ -143,12 +144,12 @@ impl Node {
             Ok(ProtocolMessage::GetPeers) => {
                 let mut decoder = Decoder::new(&mut message[..], ProtocolMessage::GetPeers);
                 let peer = decoder.peer_id();
-                if self.peerlist.peers.contains_key(&peer) {
+                // if self.peerlist.peers.contains_key(&peer) {
                     let message = Encoder::encode(ProtocolMessage::PeerList, self.id, &self.peerlist)?;
                     Ok(message)
-                } else {
-                    Err(Error::new(ErrorKind::InvalidData, "Message from unrecognised peer"))
-                }
+                // } else { // TODO: Handle unrecognised peer again
+                //     Err(Error::new(ErrorKind::InvalidData, "Message from unrecognised peer"))
+                // }
             },
             Ok(ProtocolMessage::PeerList) => {
                 println!("Peerlist received");

@@ -41,6 +41,9 @@ impl Handler for Client {
         println!("Sending message from client... {:?}", Encoder::encode(ProtocolMessage::AddMe, node.id, &String::new())?);
         // self.out.broadcast(Encoder::encode(ProtocolMessage::AddMe, node.id, &String::new())?);
 
+        let get_peers_message = node.get_peers().unwrap();
+        self.out.send(get_peers_message)?;
+
         let send_transactions_message = node.send_transactions().unwrap();
         self.out.send(send_transactions_message)?;
         let get_chain_message = node.get_chain().unwrap();
@@ -62,7 +65,10 @@ impl Handler for Client {
                 }
                 Ok(())
             },
-            Err(_) => Err(Error::new(ws::ErrorKind::Internal, "whoooops"))
+            Err(e) => {
+                println!("{:?}", e);
+                Err(Error::new(ws::ErrorKind::Internal, "whoooops"))
+            }
         }
         // Err("No result to send..")
         // self.out.
