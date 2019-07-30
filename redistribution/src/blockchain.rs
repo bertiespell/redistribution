@@ -133,6 +133,14 @@ impl Blockchain {
             )),
         }
     }
+
+    pub fn get_accumulated_difficulty(&self) -> usize {
+        self.blocks
+            .iter()
+            .map(|block| block.difficulty)
+            .map(|difficulty| (2 as usize).pow(difficulty))
+            .fold(0, |acc, x| acc + x)
+    }
 }
 
 impl Encodable for Blockchain {
