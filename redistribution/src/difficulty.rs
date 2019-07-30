@@ -32,7 +32,7 @@ pub fn hash_matches_difficulty(hash: &String, difficulty: &u32) -> Result<bool> 
 }
 
 // in seconds
-const BLOCK_GENERATION_INTERVAL: Duration = Duration::new(600, 0);
+const BLOCK_GENERATION_INTERVAL_SECS: u64 = 600;
 
 // in blocks
 const DIFFICULTY_ADJUSTMENT_INTERVAL: u32 = 10;
@@ -51,6 +51,8 @@ fn get_difficulty(blockchain: blockchain::Blockchain) -> u32 {
 }
 
 fn get_adjusted_difficulty(latest_block: &block::Block, chain: &blockchain::Blockchain) -> u32 {
+    let BLOCK_GENERATION_INTERVAL: Duration = Duration::new(BLOCK_GENERATION_INTERVAL_SECS, 0);
+
     let previous_adjustment_block = chain.get_block_at_index(chain.len() - DIFFICULTY_ADJUSTMENT_INTERVAL as usize).unwrap(); // TODO: handle
     let time_expected = BLOCK_GENERATION_INTERVAL * DIFFICULTY_ADJUSTMENT_INTERVAL;
     let time_taken = latest_block.timestamp - previous_adjustment_block.timestamp;
