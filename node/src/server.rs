@@ -3,10 +3,14 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
 extern crate ws;
-use ws::{CloseCode, Error, ErrorKind, Handler, Handshake, Message, Result, Sender, connect};
+use ws::{CloseCode, Error, ErrorKind, Handler, Handshake, Message, Result, Sender};
+use url::Url;
+// use url::{Url, Host};
+// extern crate url;
+
+
 
 use crate::node;
-use crate::client;
 
 pub struct Server {
     out: Sender,
@@ -32,6 +36,16 @@ impl Handler for Server {
         let result = node.handle_message(&mut msg.into_data());
         match result {
             Ok(message) => {
+                match message.connect {
+                    Some(connection) => {
+                        // connect to it....
+                        let mut peer_url = String::from("ws://");
+                        peer_url.push_str(&connection.to_string());
+                        let url = url::Url::parse(&peer_url).unwrap();
+                        self.out.connect(url)?;
+                    },
+                    _ => {}
+                }
                 if message.broadcast {
                     match message.raw_message {
                         Some(data) => {
@@ -52,6 +66,7 @@ impl Handler for Server {
                         _ => {}
                     }
                 }
+                
                 Ok(())
             }
             Err(e) => Err(Error::from(e)),

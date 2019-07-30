@@ -2,7 +2,6 @@ use std::io::{Error, ErrorKind, Result};
 use std::time::Duration;
 
 pub fn hash_matches_difficulty(hash: &String, difficulty: &u32) -> Result<bool> {
-    dbg!(hash.as_bytes());
     let decoded_hex_result = hex::decode(hash);
     match decoded_hex_result {
         Ok(decoded_hex) => {

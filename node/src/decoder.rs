@@ -98,7 +98,6 @@ impl<'a> Decoder<'a> {
         match self.protocol {
             ProtocolMessage::AddMe => {
                 let decoded_data = self.decode_raw()?;
-                println!("Raw json: {:?}", decoded_data);
                 let json_str_result = String::from_utf8(decoded_data);
                 match json_str_result {
                     Ok(json_str) => {

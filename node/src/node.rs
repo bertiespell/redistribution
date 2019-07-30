@@ -13,8 +13,10 @@ use crate::peerlist;
 use crate::protocol_message::ProtocolMessage;
 use peerlist::PeerList;
 
+#[derive(Debug)]
 pub struct Message {
     pub broadcast: bool,
+    pub connect: Option<SocketAddr>,
     pub raw_message: Option<Vec<u8>>,
 }
 
@@ -24,7 +26,6 @@ pub struct Node {
     blockchain: Blockchain,
     pub peerlist: PeerList,
     address: String,
-    pub connections: Vec<SocketAddr>
 }
 
 impl Node {
@@ -34,7 +35,6 @@ impl Node {
             blockchain: Blockchain::new(),
             peerlist: PeerList::new(),
             address,
-            connections: vec!(),
         }))
     }
 
@@ -112,6 +112,7 @@ impl Node {
                         self.id = node_id;
                         Ok(Message {
                             broadcast: false,
+                            connect: None,
                             raw_message: None,
                         })
                     }
@@ -129,6 +130,7 @@ impl Node {
                         Encoder::encode(ProtocolMessage::PeerList, self.id, &self.peerlist)?;
                     Ok(Message {
                         broadcast: false,
+                        connect: None,
                         raw_message: Some(message),
                     })
                 } else {
@@ -149,6 +151,7 @@ impl Node {
                         self.peerlist = peerlist;
                         Ok(Message {
                             broadcast: false,
+                            connect: None,
                             raw_message: None,
                         })
                     }
@@ -160,6 +163,7 @@ impl Node {
                     Encoder::encode(ProtocolMessage::SendBlockchain, self.id, &self.blockchain)?;
                 Ok(Message {
                     broadcast: false,
+                    connect: None,
                     raw_message: Some(message),
                 })
             }
@@ -173,6 +177,7 @@ impl Node {
                             self.blockchain = blockchain;
                             Ok(Message {
                                 broadcast: false,
+                                connect: None,
                                 raw_message: None,
                             })
                         } else {
@@ -195,9 +200,10 @@ impl Node {
 
                         let message =
                             Encoder::encode(ProtocolMessage::NewBlock, self.id, &new_block)?;
-                        println!("Sending new block");
+
                         Ok(Message {
                             broadcast: true,
+                            connect: None,
                             raw_message: Some(message),
                         })
                     }
