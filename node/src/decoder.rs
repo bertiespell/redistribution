@@ -64,7 +64,8 @@ impl<'a> Decoder<'a> {
     /// Returns next 16 bytes as u128 - peer ID - removes these from parser
     pub fn peer_id(&mut self) -> uuid::Uuid {
         let mut bytes_id = [0; 16];
-        bytes_id.swap_with_slice(
+        // let slice_to_swap = self.raw_bytes[Headers::PeerEncoding as usize..Headers::MessageLength as usize].clone_from_slice();
+        bytes_id.clone_from_slice(
             &mut self.raw_bytes[Headers::PeerEncoding as usize..Headers::MessageLength as usize],
         );
         uuid::Uuid::from_bytes(bytes_id)
@@ -72,7 +73,7 @@ impl<'a> Decoder<'a> {
 
     pub fn message_length(&mut self) -> u128 {
         let mut bytes_id = [0; 16];
-        bytes_id.swap_with_slice(
+        bytes_id.clone_from_slice(
             &mut self.raw_bytes[Headers::MessageLength as usize..Headers::Data as usize],
         );
         u128::from_be_bytes(bytes_id)
