@@ -21,13 +21,13 @@ impl Server {
 }
 
 impl Handler for Server {
-    fn on_open(&mut self, _: Handshake) -> Result<()> {
+    fn on_open(&mut self, shake: Handshake) -> Result<()> {
         // We have a new connection, so we increment the connection counter
+        println!("SERVER: Opening new connection to: {:?}", shake.peer_addr);
         Ok(self.count.set(self.count.get() + 1))
     }
 
     fn on_message(&mut self, msg: Message) -> Result<()> {
-        println!("The number of live connections is {}", self.count.get());
         let mut node = self.node.lock().unwrap();
         let result = node.handle_message(&mut msg.into_data());
         match result {

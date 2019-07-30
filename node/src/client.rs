@@ -29,6 +29,7 @@ impl Handler for Client {
     fn on_open(&mut self, shake: Handshake) -> Result<()> {
         // Now we don't need to call unwrap since `on_open` returns a `Result<()>`.
         // If this call fails, it will only result in this connection disconnecting.
+        println!("CLIENT: Opening new connection to: {:?}", shake.peer_addr);
 
         let mut node = self.node.lock().unwrap();
 

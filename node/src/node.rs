@@ -146,24 +146,6 @@ impl Node {
                     )),
                 }
             }
-            Ok(ProtocolMessage::AddedPeer) => {
-                let mut decoder = Decoder::new(&mut message[..], ProtocolMessage::AddedPeer);
-                let decoder_type = decoder.decode_json()?;
-                match decoder_type {
-                    DecodedType::NodeID(node_id) => {
-                        self.id = node_id;
-                        Ok(Message {
-                            broadcast: false,
-                            connect: None,
-                            raw_message: None,
-                        })
-                    }
-                    _ => Err(Error::new(
-                        ErrorKind::Other,
-                        "Wrong type passed from decoder",
-                    )),
-                }
-            }
             Ok(ProtocolMessage::GetPeers) => {
                 let mut decoder = Decoder::new(&mut message[..], ProtocolMessage::GetPeers);
                 let peer = decoder.peer_id();
@@ -266,11 +248,7 @@ impl Node {
                     raw_message: None,
                 })
             }
-            Err(e) => Err(e),
-            Ok(_) => Err(Error::new(
-                ErrorKind::InvalidData,
-                "No path for given protocol",
-            )),
+            Err(e) => Err(e)
         }
     }
 }

@@ -28,7 +28,6 @@ pub struct Decoder<'a> {
 #[derive(Debug)]
 pub enum DecodedType {
     BlockData(BlockData),
-    NodeID(uuid::Uuid),
     PeerList(PeerList),
     Blockchain(Blockchain),
     NewPeer(PeerIP),
@@ -154,11 +153,6 @@ impl<'a> Decoder<'a> {
                         "Could not create string from decoded data",
                     )),
                 }
-            }
-            ProtocolMessage::AddedPeer => {
-                let raw_data = self.decode_raw()?;
-                let peerlist = PeerList::decode(&raw_data)?;
-                Ok(DecodedType::PeerList(peerlist))
             }
             ProtocolMessage::PeerList => {
                 let raw_data = self.decode_raw()?;
