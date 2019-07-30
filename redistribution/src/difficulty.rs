@@ -1,4 +1,5 @@
 use std::io::{Error, ErrorKind, Result};
+use std::time::Duration;
 
 pub fn hash_matches_difficulty(hash: &String, difficulty: &u32) -> Result<bool> {
     dbg!(hash.as_bytes());
@@ -31,7 +32,7 @@ pub fn hash_matches_difficulty(hash: &String, difficulty: &u32) -> Result<bool> 
 }
 
 // in seconds
-const BLOCK_GENERATION_INTERVAL: u32 = 10;
+const BLOCK_GENERATION_INTERVAL: Duration = Duration::new(600, 0);
 
 // in blocks
 const DIFFICULTY_ADJUSTMENT_INTERVAL: u32 = 10;
@@ -53,23 +54,14 @@ fn get_adjusted_difficulty(latest_block: &block::Block, chain: &blockchain::Bloc
     let previous_adjustment_block = chain.get_block_at_index(chain.len() - DIFFICULTY_ADJUSTMENT_INTERVAL as usize).unwrap(); // TODO: handle
     let time_expected = BLOCK_GENERATION_INTERVAL * DIFFICULTY_ADJUSTMENT_INTERVAL;
     let time_taken = latest_block.timestamp - previous_adjustment_block.timestamp;
-
-    3
-}
-/**
-const getAdjustedDifficulty = (latestBlock: Block, aBlockchain: Block[]) => {
-    const prevAdjustmentBlock: Block = aBlockchain[blockchain.length - DIFFICULTY_ADJUSTMENT_INTERVAL];
-    const timeExpected: number = BLOCK_GENERATION_INTERVAL * DIFFICULTY_ADJUSTMENT_INTERVAL;
-    const timeTaken: number = latestBlock.timestamp - prevAdjustmentBlock.timestamp;
-    if (timeTaken < timeExpected / 2) {
-        return prevAdjustmentBlock.difficulty + 1;
-    } else if (timeTaken > timeExpected * 2) {
-        return prevAdjustmentBlock.difficulty - 1;
+    if time_taken < time_expected / 2 {
+        return previous_adjustment_block.difficulty + 1;
+    } else if time_taken > time_expected / 2 {
+        return previous_adjustment_block.difficulty - 1;
     } else {
-        return prevAdjustmentBlock.difficulty;
+        return previous_adjustment_block.difficulty;
     }
-};
- */
+}
 
 #[cfg(test)]
 mod tests {
