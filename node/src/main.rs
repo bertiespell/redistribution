@@ -25,7 +25,7 @@ fn main() {
         process::exit(1)
     });
 
-    let node = node::Node::new(config.address.to_string()).unwrap();
+    let node = node::Node::new(config.address.to_string());
 
     let cloned_node = Arc::clone(&node);
     let listening_thread = thread::spawn(move || {

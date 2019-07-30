@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::io::{Error, ErrorKind, Result};
-use std::time::SystemTime;
+use std::time::{SystemTime, Duration};
 
 use crate::encoder;
 use crate::hasher;
@@ -13,7 +13,7 @@ pub type BlockData = String;
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Block {
     pub index: u32, // height of the blockchain
-    pub timestamp: String,
+    pub timestamp: Duration,
     pub data: BlockData,
     pub hash: String,
     pub previous_hash: String,
@@ -34,7 +34,7 @@ impl PartialEq for Block {
 impl Block {
     pub fn new(
         index: u32,
-        timestamp: String,
+        timestamp: Duration,
         data: BlockData,
         hash: String,
         previous_hash: String,
@@ -52,36 +52,27 @@ impl Block {
         }
     }
 
-    pub fn genesis_block() -> Result<Block> {
-        let system_time = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH); // TODO: Don't need system time here
-        match system_time {
-            Ok(time) => {
-                let timestamp = format!("{:?}", time); // TODO: genesis block should just have a set timestamp
-                let difficulty: u32 = 0;
-                let nonce: u128 = 0;
-                let hash = calculate_hash(
-                    &0,
-                    &String::new(),
-                    &timestamp,
-                    &String::new(),
-                    &difficulty,
-                    &nonce,
-                );
-                Ok(Block::new(
-                    0,
-                    timestamp,
-                    String::new(),
-                    hash,
-                    String::new(),
-                    difficulty,
-                    nonce,
-                ))
-            }
-            Err(_) => Err(Error::new(
-                ErrorKind::InvalidData,
-                "Error getting system time",
-            )),
-        }
+    pub fn genesis_block() -> Block {
+        let timestamp = Duration::new(0, 0);
+        let difficulty: u32 = 0;
+        let nonce: u128 = 0;
+        let hash = calculate_hash(
+            &0,
+            &String::new(),
+            &timestamp,
+            &String::new(),
+            &difficulty,
+            &nonce,
+        );
+        Block::new(
+            0,
+            timestamp,
+            String::new(),
+            hash,
+            String::new(),
+            difficulty,
+            nonce,
+        )
     }
 
     pub fn calculate_hash_for_block(block: &Block) -> String {

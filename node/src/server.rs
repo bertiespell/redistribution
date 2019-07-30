@@ -3,9 +3,10 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
 extern crate ws;
-use ws::{CloseCode, Error, Handler, Handshake, Message, Result, Sender, ErrorKind};
+use ws::{CloseCode, Error, ErrorKind, Handler, Handshake, Message, Result, Sender, connect};
 
 use crate::node;
+use crate::client;
 
 pub struct Server {
     out: Sender,
@@ -19,9 +20,8 @@ impl Server {
     }
 }
 
-
 impl Handler for Server {
-    fn on_open(&mut self, shake: Handshake) -> Result<()> {
+    fn on_open(&mut self, _: Handshake) -> Result<()> {
         // We have a new connection, so we increment the connection counter
         Ok(self.count.set(self.count.get() + 1))
     }
@@ -36,21 +36,24 @@ impl Handler for Server {
                     match message.raw_message {
                         Some(data) => {
                             return self.out.broadcast(data);
-                        },
+                        }
                         None => {
-                            return Err(Error::new(ErrorKind::Internal, "Asking to broadcast message with no data"));
+                            return Err(Error::new(
+                                ErrorKind::Internal,
+                                "Asking to broadcast message with no data",
+                            ));
                         }
                     }
                 } else {
                     match message.raw_message {
                         Some(data) => {
                             return self.out.send(data);
-                        },
+                        }
                         _ => {}
                     }
                 }
                 Ok(())
-            },
+            }
             Err(e) => Err(Error::from(e)),
         }
     }

@@ -1,8 +1,8 @@
 use redistribution::Blockchain;
 use serde::{Deserialize, Serialize};
 use std::io::{Error, ErrorKind, Result};
+use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
-use std::net::{SocketAddr};
 
 use uuid::Uuid;
 
@@ -22,18 +22,20 @@ pub struct Message {
 pub struct Node {
     pub id: Uuid,
     blockchain: Blockchain,
-    peerlist: PeerList,
+    pub peerlist: PeerList,
     address: String,
+    pub connections: Vec<SocketAddr>
 }
 
 impl Node {
-    pub fn new(address: String) -> Result<Arc<Mutex<Node>>> {   
-        Ok(Arc::new(Mutex::new(Node {
+    pub fn new(address: String) -> Arc<Mutex<Node>> {
+        Arc::new(Mutex::new(Node {
             id: PeerList::get_new_peer_id(address.as_bytes()),
-            blockchain: Blockchain::new()?,
+            blockchain: Blockchain::new(),
             peerlist: PeerList::new(),
-            address
-        })))
+            address,
+            connections: vec!(),
+        }))
     }
 
     pub fn add_me(&mut self) -> Result<Vec<u8>> {
@@ -72,7 +74,7 @@ impl Node {
                 let decoder_type = decoder.decode_json()?;
                 match decoder_type {
                     DecodedType::NewPeer(peer_ip) => {
-                        let new_key = self.peerlist.peers.insert(decoder.peer_id(), peer_ip);
+                        let new_key = self.peerlist.peers.insert(decoder.peer_id(), peer_ip); // TODO: this should return error if peer already exists (ID is taken)
                         println!("Updated node's peerlist: {:?}", self.peerlist);
                         match new_key {
                             Some(_) => {
@@ -81,9 +83,13 @@ impl Node {
                                     broadcast: false,
                                     raw_message: None,
                                 })
-                            },
+                            }
                             None => {
-                                let message = Encoder::encode(ProtocolMessage::AddMe, decoder.peer_id(), &peer_ip.to_string())?;
+                                let message = Encoder::encode(
+                                    ProtocolMessage::AddMe,
+                                    decoder.peer_id(),
+                                    &peer_ip.to_string(),
+                                )?;
 
                                 Ok(Message {
                                     broadcast: true,
@@ -106,7 +112,7 @@ impl Node {
                         self.id = node_id;
                         Ok(Message {
                             broadcast: false,
-                            raw_message: None
+                            raw_message: None,
                         })
                     }
                     _ => Err(Error::new(
@@ -118,15 +124,20 @@ impl Node {
             Ok(ProtocolMessage::GetPeers) => {
                 let mut decoder = Decoder::new(&mut message[..], ProtocolMessage::GetPeers);
                 let peer = decoder.peer_id();
-                // if self.peerlist.peers.contains_key(&peer) {
-                let message = Encoder::encode(ProtocolMessage::PeerList, self.id, &self.peerlist)?;
-                Ok(Message {
-                    broadcast: false,
-                    raw_message: Some(message)
-                })
-                // } else { // TODO: Handle unrecognised peer again
-                //     Err(Error::new(ErrorKind::InvalidData, "Message from unrecognised peer"))
-                // }
+                if self.peerlist.peers.contains_key(&peer) {
+                    let message =
+                        Encoder::encode(ProtocolMessage::PeerList, self.id, &self.peerlist)?;
+                    Ok(Message {
+                        broadcast: false,
+                        raw_message: Some(message),
+                    })
+                } else {
+                    // TODO: Handle unrecognised peer again
+                    Err(Error::new(
+                        ErrorKind::InvalidData,
+                        "Message from unrecognised peer",
+                    ))
+                }
             }
             Ok(ProtocolMessage::PeerList) => {
                 let mut decoder = Decoder::new(&mut message[..], ProtocolMessage::PeerList);
@@ -138,9 +149,9 @@ impl Node {
                         self.peerlist = peerlist;
                         Ok(Message {
                             broadcast: false,
-                            raw_message: None
+                            raw_message: None,
                         })
-                    },
+                    }
                     _ => Err(Error::new(ErrorKind::Other, "Did not decode PeerList")),
                 }
             }
@@ -149,7 +160,7 @@ impl Node {
                     Encoder::encode(ProtocolMessage::SendBlockchain, self.id, &self.blockchain)?;
                 Ok(Message {
                     broadcast: false,
-                    raw_message: Some(message)
+                    raw_message: Some(message),
                 })
             }
             Ok(ProtocolMessage::SendBlockchain) => {
@@ -158,20 +169,14 @@ impl Node {
                 match decoded {
                     DecodedType::Blockchain(blockchain) => {
                         if Blockchain::is_chain_valid(&blockchain) {
-                            println!(
-                                "Received new chain: {:?}",
-                                blockchain
-                            );
+                            println!("Received new chain: {:?}", blockchain);
                             self.blockchain = blockchain;
                             Ok(Message {
                                 broadcast: false,
-                                raw_message: None
+                                raw_message: None,
                             })
                         } else {
-                            Err(Error::new(
-                                ErrorKind::InvalidData, 
-                                "Recieved invalid chain"
-                            ))
+                            Err(Error::new(ErrorKind::InvalidData, "Recieved invalid chain"))
                         }
                     }
                     _ => Err(Error::new(
@@ -193,7 +198,7 @@ impl Node {
                         println!("Sending new block");
                         Ok(Message {
                             broadcast: true,
-                            raw_message: Some(message)
+                            raw_message: Some(message),
                         })
                     }
                     _ => Err(Error::new(
@@ -203,9 +208,10 @@ impl Node {
                 }
             }
             Ok(ProtocolMessage::NewBlock) => {
+                println!("Received new block");
                 Ok(Message {
                     broadcast: false,
-                    raw_message: None
+                    raw_message: None,
                 })
             }
             Err(e) => Err(e),

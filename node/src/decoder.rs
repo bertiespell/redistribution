@@ -5,7 +5,7 @@ use redistribution::Decodable;
 use redistribution::{BlockData, Blockchain};
 use std::convert::TryFrom;
 use std::io::{Error, ErrorKind, Result};
-use std::net::{SocketAddr};
+use std::net::SocketAddr;
 
 /// Stores the first index of each header. Used to break up raw message into relevant sections.
 pub enum Headers {
@@ -110,7 +110,7 @@ impl<'a> Decoder<'a> {
                         "Could not create string from decoded data",
                     )),
                 }
-            },
+            }
             ProtocolMessage::AddTransaction => {
                 let decoded_data = self.decode_raw()?;
                 let json_str_result = String::from_utf8(decoded_data);
@@ -139,7 +139,7 @@ impl<'a> Decoder<'a> {
                 let raw_data = self.decode_raw()?;
                 let blockchain = Blockchain::decode(&raw_data)?;
                 Ok(DecodedType::Blockchain(blockchain))
-            },
+            }
             _ => Err(Error::new(
                 ErrorKind::Other,
                 "No decoder available for command",

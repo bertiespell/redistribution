@@ -18,10 +18,7 @@ impl Encoder {
             .as_bytes()
             .iter()
             .for_each(|x| raw_encoded.push(*x));
-        peer_id
-            .as_bytes()
-            .iter()
-            .for_each(|x| raw_encoded.push(*x));
+        peer_id.as_bytes().iter().for_each(|x| raw_encoded.push(*x));
         let message_length_result = u128::try_from(data.len());
         match message_length_result {
             Ok(message_length) => {

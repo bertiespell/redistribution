@@ -4,11 +4,12 @@ use crate::hasher;
 use block::{Block, BlockData};
 use difficulty::hash_matches_difficulty;
 use hasher::calculate_hash;
+use std::time::Duration;
 
 fn find_block(
     index: u32,
     previous_hash: String,
-    timestamp: String,
+    timestamp: Duration,
     data: BlockData,
     difficulty: u32,
 ) -> Block {

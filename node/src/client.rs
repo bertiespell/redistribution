@@ -59,16 +59,19 @@ impl Handler for Client {
                     match message.raw_message {
                         Some(data) => {
                             return self.out.broadcast(data);
-                        },
+                        }
                         None => {
-                            return Err(Error::new(ErrorKind::Internal, "Asking to broadcast message with no data"));
+                            return Err(Error::new(
+                                ErrorKind::Internal,
+                                "Asking to broadcast message with no data",
+                            ));
                         }
                     }
                 } else {
                     match message.raw_message {
                         Some(data) => {
                             return self.out.send(data);
-                        },
+                        }
                         _ => {}
                     }
                 }
