@@ -2,7 +2,7 @@ use crate::peerlist;
 use crate::protocol_message::ProtocolMessage;
 use peerlist::PeerList;
 use redistribution::Decodable;
-use redistribution::{BlockData, Blockchain};
+use redistribution::{BlockData, Blockchain, Block};
 use std::convert::TryFrom;
 use std::io::{Error, ErrorKind, Result};
 use std::net::SocketAddr;
@@ -32,6 +32,8 @@ pub enum DecodedType {
     PeerList(PeerList),
     Blockchain(Blockchain),
     NewPeer(PeerIP),
+    UpdatePeer(uuid::Uuid, PeerIP),
+    NewBlock(Block),
 }
 
 pub type PeerIP = SocketAddr;
@@ -110,6 +112,20 @@ impl<'a> Decoder<'a> {
                     )),
                 }
             }
+            ProtocolMessage::UpdatePeer => {
+                let decoded_data = self.decode_raw()?;
+                let json_str_result = String::from_utf8(decoded_data);
+                match json_str_result {
+                    Ok(json_str) => {
+                        let deserialised_data: PeerIP = serde_json::from_str(&json_str)?;
+                        Ok(DecodedType::UpdatePeer(self.peer_id(), deserialised_data))
+                    }
+                    Err(_) => Err(Error::new(
+                        ErrorKind::InvalidData,
+                        "Could not create string from decoded data",
+                    )),
+                }
+            }
             ProtocolMessage::AddTransaction => {
                 let decoded_data = self.decode_raw()?;
                 let json_str_result = String::from_utf8(decoded_data);
@@ -117,6 +133,20 @@ impl<'a> Decoder<'a> {
                     Ok(json_str) => {
                         let deserialised_data: BlockData = serde_json::from_str(&json_str)?;
                         Ok(DecodedType::BlockData(deserialised_data))
+                    }
+                    Err(_) => Err(Error::new(
+                        ErrorKind::InvalidData,
+                        "Could not create string from decoded data",
+                    )),
+                }
+            }
+            ProtocolMessage::NewBlock => {
+                let decoded_data = self.decode_raw()?;
+                let json_str_result = String::from_utf8(decoded_data);
+                match json_str_result {
+                    Ok(json_str) => {
+                        let deserialised_data: Block = serde_json::from_str(&json_str)?;
+                        Ok(DecodedType::NewBlock(deserialised_data))
                     }
                     Err(_) => Err(Error::new(
                         ErrorKind::InvalidData,

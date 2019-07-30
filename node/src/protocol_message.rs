@@ -10,6 +10,7 @@ pub enum ProtocolMessage {
     PeerList,
     AddTransaction,
     SendBlockchain,
+	UpdatePeer
 }
 
 impl ProtocolMessage {
@@ -24,6 +25,7 @@ impl ProtocolMessage {
             ProtocolMessage::PeerList => "0x06".as_bytes(),
             ProtocolMessage::AddTransaction => "0x07".as_bytes(),
             ProtocolMessage::SendBlockchain => "0x08".as_bytes(),
+			ProtocolMessage::UpdatePeer => "Ox09".as_bytes(),
         }
     }
 
@@ -52,7 +54,9 @@ impl ProtocolMessage {
             return Ok(ProtocolMessage::PeerList);
         } else if opcode == ProtocolMessage::SendBlockchain.as_bytes() {
             return Ok(ProtocolMessage::SendBlockchain);
-        }
+        } else if opcode == ProtocolMessage::UpdatePeer.as_bytes() {
+			return Ok(ProtocolMessage::UpdatePeer);
+		}
         Err(Error::new(ErrorKind::Other, "Unknown Protocol"))
     }
 }
