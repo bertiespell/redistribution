@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 use serde_json;
 use std::collections::VecDeque;
 use std::io::{Error, ErrorKind, Result};
-use std::time::SystemTime;
 use std::ops::Index;
+use std::time::SystemTime;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Blockchain {

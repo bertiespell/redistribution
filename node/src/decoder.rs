@@ -2,7 +2,7 @@ use crate::peerlist;
 use crate::protocol_message::ProtocolMessage;
 use peerlist::PeerList;
 use redistribution::Decodable;
-use redistribution::{BlockData, Blockchain, Block};
+use redistribution::{Block, BlockData, Blockchain};
 use std::convert::TryFrom;
 use std::io::{Error, ErrorKind, Result};
 use std::net::SocketAddr;

@@ -1,7 +1,6 @@
 extern crate ws;
 use crate::node;
 use std::sync::{Arc, Mutex};
-use url::Url;
 
 use ws::{Error, ErrorKind, Handler, Handshake, Message, Result, Sender};
 
@@ -62,7 +61,7 @@ impl Handler for Client {
                         peer_url.push_str(&connection.to_string());
                         let url = url::Url::parse(&peer_url).unwrap();
                         self.out.connect(url)?;
-                    },
+                    }
                     _ => {}
                 }
                 if message.broadcast {
@@ -85,7 +84,7 @@ impl Handler for Client {
                         _ => {}
                     }
                 }
-                
+
                 Ok(())
             }
             Err(e) => Err(Error::from(e)),

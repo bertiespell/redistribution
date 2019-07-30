@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::io::{Error, ErrorKind, Result};
-use std::time::{SystemTime, Duration};
+use std::time::{Duration, SystemTime};
 
 use crate::encoder;
 use crate::hasher;
