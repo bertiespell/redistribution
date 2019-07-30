@@ -26,16 +26,20 @@ impl Handler for Client {
     // We ignore the `Handshake` for now, but you could also use this method to setup
     // Handler state or reject the connection based on the details of the Request
     // or Response, such as by checking cookies or Auth headers.
-    fn on_open(&mut self, _: Handshake) -> Result<()> {
+    fn on_open(&mut self, shake: Handshake) -> Result<()> {
         // Now we don't need to call unwrap since `on_open` returns a `Result<()>`.
         // If this call fails, it will only result in this connection disconnecting.
 
         let mut node = self.node.lock().unwrap();
 
+        // initial set-up involves a request to be added to the networ
         let add_me_message = node.add_me().unwrap();
         self.out.send(add_me_message)?;
+        // then discovering and adding peers
         let get_peers_message = node.get_peers().unwrap();
         self.out.send(get_peers_message)?;
+
+        // TODO: handle the pruning and selection of peers
 
         let send_transactions_message = node.send_transactions().unwrap();
         self.out.send(send_transactions_message)?;

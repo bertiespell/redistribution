@@ -10,7 +10,7 @@ pub struct Encoder {}
 impl Encoder {
     fn encode_raw(
         protocol: ProtocolMessage,
-        peer_id: u128,
+        peer_id: uuid::Uuid,
         data: Vec<u8>,
     ) -> Result<EncodedMessage> {
         let mut raw_encoded = vec![];
@@ -19,7 +19,7 @@ impl Encoder {
             .iter()
             .for_each(|x| raw_encoded.push(*x));
         peer_id
-            .to_be_bytes()
+            .as_bytes()
             .iter()
             .for_each(|x| raw_encoded.push(*x));
         let message_length_result = u128::try_from(data.len());
@@ -45,7 +45,7 @@ impl Encoder {
 
     pub fn encode<T: Encodable>(
         protocol: ProtocolMessage,
-        peer_id: u128,
+        peer_id: uuid::Uuid,
         data: &T,
     ) -> Result<EncodedMessage> {
         Encoder::encode_raw(protocol, peer_id, data.encode()?.to_vec())

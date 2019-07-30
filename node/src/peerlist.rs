@@ -3,10 +3,11 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io::{Error, ErrorKind, Result};
 use std::net::SocketAddr;
+use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PeerList {
-    pub peers: HashMap<u128, SocketAddr>,
+    pub peers: HashMap<uuid::Uuid, SocketAddr>,
 }
 
 impl PeerList {
@@ -14,6 +15,10 @@ impl PeerList {
         PeerList {
             peers: HashMap::new(),
         }
+    }
+
+    pub fn get_new_peer_id(peer_addr: &[u8]) -> uuid::Uuid {
+        Uuid::new_v5(&Uuid::NAMESPACE_OID, peer_addr)
     }
 }
 
@@ -29,7 +34,7 @@ impl Decodable for PeerList {
         let decoded_json_result = String::from_utf8(bytes.clone());
         match decoded_json_result {
             Ok(decoded_json) => {
-                let peers: HashMap<u128, SocketAddr> = serde_json::from_str(&decoded_json)?;
+                let peers: HashMap<uuid::Uuid, SocketAddr> = serde_json::from_str(&decoded_json)?;
                 Ok(PeerList { peers })
             }
             Err(_) => Err(Error::new(

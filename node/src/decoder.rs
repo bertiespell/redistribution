@@ -5,6 +5,7 @@ use redistribution::Decodable;
 use redistribution::{BlockData, Blockchain};
 use std::convert::TryFrom;
 use std::io::{Error, ErrorKind, Result};
+use std::net::{SocketAddr};
 
 /// Stores the first index of each header. Used to break up raw message into relevant sections.
 pub enum Headers {
@@ -27,10 +28,13 @@ pub struct Decoder<'a> {
 #[derive(Debug)]
 pub enum DecodedType {
     BlockData(BlockData),
-    NodeID(u128),
+    NodeID(uuid::Uuid),
     PeerList(PeerList),
     Blockchain(Blockchain),
+    NewPeer(PeerIP),
 }
+
+pub type PeerIP = SocketAddr;
 
 /// Assumes messages apply to format
 /// 4 bytes - opcode
@@ -56,12 +60,12 @@ impl<'a> Decoder<'a> {
     /// Reads raw data passed to parser
     /// Ignores first 4 bytes (opcode)
     /// Returns next 16 bytes as u128 - peer ID - removes these from parser
-    pub fn peer_id(&mut self) -> u128 {
+    pub fn peer_id(&mut self) -> uuid::Uuid {
         let mut bytes_id = [0; 16];
         bytes_id.swap_with_slice(
             &mut self.raw_bytes[Headers::PeerEncoding as usize..Headers::MessageLength as usize],
         );
-        u128::from_be_bytes(bytes_id)
+        uuid::Uuid::from_bytes(bytes_id)
     }
 
     pub fn message_length(&mut self) -> u128 {
@@ -92,6 +96,21 @@ impl<'a> Decoder<'a> {
 
     pub fn decode_json(&mut self) -> Result<DecodedType> {
         match self.protocol {
+            ProtocolMessage::AddMe => {
+                let decoded_data = self.decode_raw()?;
+                println!("Raw json: {:?}", decoded_data);
+                let json_str_result = String::from_utf8(decoded_data);
+                match json_str_result {
+                    Ok(json_str) => {
+                        let deserialised_data: PeerIP = serde_json::from_str(&json_str)?;
+                        Ok(DecodedType::NewPeer(deserialised_data))
+                    }
+                    Err(_) => Err(Error::new(
+                        ErrorKind::InvalidData,
+                        "Could not create string from decoded data",
+                    )),
+                }
+            },
             ProtocolMessage::AddTransaction => {
                 let decoded_data = self.decode_raw()?;
                 let json_str_result = String::from_utf8(decoded_data);
@@ -107,8 +126,9 @@ impl<'a> Decoder<'a> {
                 }
             }
             ProtocolMessage::AddedPeer => {
-                let decoded = u128::decode(&self.decode_raw()?)?;
-                Ok(DecodedType::NodeID(decoded))
+                let raw_data = self.decode_raw()?;
+                let peerlist = PeerList::decode(&raw_data)?;
+                Ok(DecodedType::PeerList(peerlist))
             }
             ProtocolMessage::PeerList => {
                 let raw_data = self.decode_raw()?;

@@ -25,7 +25,7 @@ fn main() {
         process::exit(1)
     });
 
-    let node = node::Node::new().unwrap();
+    let node = node::Node::new(config.address.to_string()).unwrap();
 
     let cloned_node = Arc::clone(&node);
     let listening_thread = thread::spawn(move || {
@@ -45,9 +45,6 @@ fn main() {
             client::Client::new(out, another_clone)
         })
         .unwrap();
-    } else {
-        let mut node = node.lock().unwrap();
-        node.id = 1;
     }
 
     listening_thread.join().unwrap();

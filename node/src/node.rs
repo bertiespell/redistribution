@@ -2,7 +2,9 @@ use redistribution::Blockchain;
 use serde::{Deserialize, Serialize};
 use std::io::{Error, ErrorKind, Result};
 use std::sync::{Arc, Mutex};
-static ROOT_NODE: &str = "127.0.0.1:7878";
+use std::net::{SocketAddr};
+
+use uuid::Uuid;
 
 use crate::decoder::{DecodedType, Decoder};
 use crate::encoder::Encoder;
@@ -18,22 +20,24 @@ pub struct Message {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Node {
-    pub id: u128,
+    pub id: Uuid,
     blockchain: Blockchain,
-    peerlist: PeerList, // list of IDs
+    peerlist: PeerList,
+    address: String,
 }
 
 impl Node {
-    pub fn new() -> Result<Arc<Mutex<Node>>> {
+    pub fn new(address: String) -> Result<Arc<Mutex<Node>>> {   
         Ok(Arc::new(Mutex::new(Node {
-            id: 0,
+            id: PeerList::get_new_peer_id(address.as_bytes()),
             blockchain: Blockchain::new()?,
             peerlist: PeerList::new(),
+            address
         })))
     }
 
     pub fn add_me(&mut self) -> Result<Vec<u8>> {
-        let message = Encoder::encode(ProtocolMessage::AddMe, self.id, &String::new())?;
+        let message = Encoder::encode(ProtocolMessage::AddMe, self.id, &self.address)?;
         Ok(message)
     }
 
@@ -64,26 +68,35 @@ impl Node {
 
         match opcode {
             Ok(ProtocolMessage::AddMe) => {
-                // TODO: ensure we're using UUID. Here we just use an incrementing ID - ideally in the future one node won't store *all* other nodes in its peers... so we'll need a smarter system
-                // TODO: This should be the peer node address that we are tracking - how should be handle this?
-                let node_addr = ROOT_NODE.parse().unwrap();
-                let mut highest_id: u128 = 1;
-                let mut peers = self.peerlist.peers.iter();
+                let mut decoder = Decoder::new(&mut message[..], ProtocolMessage::AddMe);
+                let decoder_type = decoder.decode_json()?;
+                match decoder_type {
+                    DecodedType::NewPeer(peer_ip) => {
+                        let new_key = self.peerlist.peers.insert(decoder.peer_id(), peer_ip);
+                        println!("Updated node's peerlist: {:?}", self.peerlist);
+                        match new_key {
+                            Some(_) => {
+                                // If we already had the key - no need to rebroadcast
+                                Ok(Message {
+                                    broadcast: false,
+                                    raw_message: None,
+                                })
+                            },
+                            None => {
+                                let message = Encoder::encode(ProtocolMessage::AddMe, decoder.peer_id(), &peer_ip.to_string())?;
 
-                while let Some((peer_id, _)) = peers.next() {
-                    if highest_id < *peer_id {
-                        highest_id = *peer_id;
+                                Ok(Message {
+                                    broadcast: true,
+                                    raw_message: Some(message),
+                                })
+                            }
+                        }
                     }
+                    _ => Err(Error::new(
+                        ErrorKind::Other,
+                        "Wrong type passed from decoder",
+                    )),
                 }
-
-                highest_id = highest_id + 1;
-                self.peerlist.peers.insert(highest_id, node_addr);
-
-                let message = Encoder::encode(ProtocolMessage::AddedPeer, self.id, &highest_id)?;
-                Ok(Message {
-                    broadcast: true,
-                    raw_message: Some(message)
-                })
             }
             Ok(ProtocolMessage::AddedPeer) => {
                 let mut decoder = Decoder::new(&mut message[..], ProtocolMessage::AddedPeer);
@@ -177,7 +190,7 @@ impl Node {
 
                         let message =
                             Encoder::encode(ProtocolMessage::NewBlock, self.id, &new_block)?;
-
+                        println!("Sending new block");
                         Ok(Message {
                             broadcast: true,
                             raw_message: Some(message)

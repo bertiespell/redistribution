@@ -19,6 +19,7 @@ impl Server {
     }
 }
 
+
 impl Handler for Server {
     fn on_open(&mut self, shake: Handshake) -> Result<()> {
         // We have a new connection, so we increment the connection counter
