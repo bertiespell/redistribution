@@ -75,24 +75,66 @@ impl Node {
                 match decoder_type {
                     DecodedType::NewPeer(peer_ip) => {
                         let new_key = self.peerlist.peers.insert(decoder.peer_id(), peer_ip); // TODO: this should return error if peer already exists (ID is taken)
-                        println!("Updated node's peerlist: {:?}", self.peerlist);
                         match new_key {
                             Some(_) => {
                                 // If we already had the key - no need to rebroadcast
                                 Ok(Message {
                                     broadcast: false,
+                                    connect: None,
                                     raw_message: None,
                                 })
                             }
                             None => {
+                                println!("Updated peerlist: {:?}", self.peerlist.peers);
+
                                 let message = Encoder::encode(
-                                    ProtocolMessage::AddMe,
+                                    ProtocolMessage::UpdatePeer,
                                     decoder.peer_id(),
                                     &peer_ip.to_string(),
                                 )?;
 
                                 Ok(Message {
                                     broadcast: true,
+                                    connect: None,
+                                    raw_message: Some(message),
+                                })
+                            }
+                        }
+                    }
+                    _ => Err(Error::new(
+                        ErrorKind::Other,
+                        "Wrong type passed from decoder",
+                    )),
+                }
+            }
+            Ok(ProtocolMessage::UpdatePeer) => {
+                let mut decoder = Decoder::new(&mut message[..], ProtocolMessage::UpdatePeer);
+                let decoder_type = decoder.decode_json()?;
+
+                match decoder_type {
+                    DecodedType::UpdatePeer(peer_id, peer_ip) => {
+                        let new_key = self.peerlist.peers.insert(peer_id, peer_ip); // TODO: this should return error if peer already exists (ID is taken)
+                        match new_key {
+                            Some(_) => {
+                                // If we already had the key - no need to rebroadcast
+                                Ok(Message {
+                                    broadcast: false,
+                                    connect: None,
+                                    raw_message: None,
+                                })
+                            }
+                            None => {
+                                println!("Updated peerlist: {:?}", self.peerlist.peers);
+
+                                let message = Encoder::encode(
+                                    ProtocolMessage::UpdatePeer,
+                                    decoder.peer_id(),
+                                    &peer_ip.to_string(),
+                                )?;
+
+                                Ok(Message {
+                                    broadcast: true,
+                                    connect: Some(peer_ip),
                                     raw_message: Some(message),
                                 })
                             }
@@ -214,9 +256,13 @@ impl Node {
                 }
             }
             Ok(ProtocolMessage::NewBlock) => {
-                println!("Received new block");
+                let mut decoder = Decoder::new(&mut message[..], ProtocolMessage::NewBlock);
+
+                let decoded_type = decoder.decode_json()?;
+                println!("Received new block: {:?}", decoded_type);
                 Ok(Message {
                     broadcast: false,
+                    connect: None,
                     raw_message: None,
                 })
             }
