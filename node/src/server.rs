@@ -5,7 +5,6 @@ use std::sync::{Arc, Mutex};
 extern crate ws;
 use ws::{CloseCode, Error, ErrorKind, Handler, Handshake, Message, Result, Sender};
 
-
 use crate::node;
 
 pub struct Server {

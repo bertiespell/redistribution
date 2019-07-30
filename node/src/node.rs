@@ -248,7 +248,7 @@ impl Node {
                     raw_message: None,
                 })
             }
-            Err(e) => Err(e)
+            Err(e) => Err(e),
         }
     }
 }
