@@ -30,6 +30,47 @@ pub fn hash_matches_difficulty(hash: &String, difficulty: &u32) -> Result<bool> 
     }
 }
 
+// in seconds
+const BLOCK_GENERATION_INTERVAL: u32 = 10;
+
+// in blocks
+const DIFFICULTY_ADJUSTMENT_INTERVAL: u32 = 10;
+
+use crate::blockchain;
+use crate::block;
+
+
+fn get_difficulty(blockchain: blockchain::Blockchain) -> u32 {
+    let latest_block = blockchain.get_latest_block().unwrap();
+    if latest_block.index % DIFFICULTY_ADJUSTMENT_INTERVAL == 0 && latest_block.index != 0 {
+        return get_adjusted_difficulty(latest_block, &blockchain);
+    } else {
+        return latest_block.difficulty;
+    }
+}
+
+fn get_adjusted_difficulty(latest_block: &block::Block, chain: &blockchain::Blockchain) -> u32 {
+    let previous_adjustment_block = chain.get_block_at_index(chain.len() - DIFFICULTY_ADJUSTMENT_INTERVAL as usize).unwrap(); // TODO: handle
+    let time_expected = BLOCK_GENERATION_INTERVAL * DIFFICULTY_ADJUSTMENT_INTERVAL;
+    let time_taken = latest_block.timestamp - previous_adjustment_block.timestamp;
+
+    3
+}
+/**
+const getAdjustedDifficulty = (latestBlock: Block, aBlockchain: Block[]) => {
+    const prevAdjustmentBlock: Block = aBlockchain[blockchain.length - DIFFICULTY_ADJUSTMENT_INTERVAL];
+    const timeExpected: number = BLOCK_GENERATION_INTERVAL * DIFFICULTY_ADJUSTMENT_INTERVAL;
+    const timeTaken: number = latestBlock.timestamp - prevAdjustmentBlock.timestamp;
+    if (timeTaken < timeExpected / 2) {
+        return prevAdjustmentBlock.difficulty + 1;
+    } else if (timeTaken > timeExpected * 2) {
+        return prevAdjustmentBlock.difficulty - 1;
+    } else {
+        return prevAdjustmentBlock.difficulty;
+    }
+};
+ */
+
 #[cfg(test)]
 mod tests {
     use super::*;
