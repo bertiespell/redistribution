@@ -1,10 +1,13 @@
-mod blockchain;
-mod encoder;
 mod block;
+mod blockchain;
+mod difficulty;
+mod encoder;
+mod findblock;
 mod hasher;
+mod timestamp;
 
 pub use blockchain::Blockchain;
-pub use encoder::{Encodable, Decodable};
+pub use encoder::{Decodable, Encodable};
 
-use block::Block;
+pub use block::Block;
 pub use block::BlockData;
