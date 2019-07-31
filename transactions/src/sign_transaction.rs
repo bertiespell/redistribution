@@ -12,6 +12,22 @@ struct UnspentTxOut {
     pub amount: usize,
 }
 
+impl UnspentTxOut {
+    pub fn new(
+        tx_out_id: String,
+        tx_out_index: usize,
+        address: String,
+        amount: usize,
+    ) -> UnspentTxOut {
+        UnspentTxOut {
+            tx_out_id,
+            tx_out_index,
+            address,
+            amount,
+        }
+    }
+}
+
 fn sign_tx_in(
     transaction: Transaction,
     txin_index: usize,
