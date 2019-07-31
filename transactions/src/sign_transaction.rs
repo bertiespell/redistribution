@@ -1,32 +1,10 @@
 use crate::sign_transaction;
 use crate::transaction::Transaction;
 use crate::txin;
+use crate::unspent_tx_out::UnspentTxOut;
 use secp256k1::{Message, PublicKey, Secp256k1, SecretKey, SerializedSignature};
 use std::io::{Error, ErrorKind, Result};
 use std::ops::Index;
-
-struct UnspentTxOut {
-    pub tx_out_id: String,
-    pub tx_out_index: usize,
-    pub address: String,
-    pub amount: usize,
-}
-
-impl UnspentTxOut {
-    pub fn new(
-        tx_out_id: String,
-        tx_out_index: usize,
-        address: String,
-        amount: usize,
-    ) -> UnspentTxOut {
-        UnspentTxOut {
-            tx_out_id,
-            tx_out_index,
-            address,
-            amount,
-        }
-    }
-}
 
 fn sign_tx_in(
     transaction: Transaction,
@@ -37,7 +15,7 @@ fn sign_tx_in(
     let tx_in: &txin::TxIn = transaction.txIns.index(txin_index);
     let data_to_sign = Message::from_slice(transaction.id.as_bytes()).unwrap();
 
-    match find_unspent_txout(&tx_in.txOutId, tx_in.txOutIndex, unspent_tx_outs) {
+    match find_unspent_txout(&tx_in.tx_out_id, tx_in.tx_out_index, unspent_tx_outs) {
         Some(referenced_unspect_txout) => {
             let referencedAddress = referenced_unspect_txout.address;
             let secp = Secp256k1::new();

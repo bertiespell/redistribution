@@ -18,11 +18,11 @@ fn get_transaction_id(transaction: Transaction) -> String {
         .iter()
         .map(|txin| {
             let mut bytes: Vec<u8> = vec![];
-            txin.txOutId
+            txin.tx_out_id
                 .as_bytes()
                 .iter()
                 .for_each(|byte| bytes.push(*byte));
-            txin.txOutIndex
+            txin.tx_out_index
                 .to_le_bytes()
                 .iter()
                 .for_each(|byte| bytes.push(*byte));
