@@ -9,3 +9,4 @@ edition = "2018"
 [dependencies]
 openssl = "0.10.24"
 hex = "0.3.2"
+secp256k1 = "0.15.0"

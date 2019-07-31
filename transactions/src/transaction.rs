@@ -2,7 +2,7 @@ use crate::txin;
 use crate::txout;
 use openssl::sha;
 
-struct Transaction {
+pub struct Transaction {
     pub id: String,
     pub txIns: Vec<txin::TxIn>,
     pub txOuts: Vec<txout::TxOut>,
