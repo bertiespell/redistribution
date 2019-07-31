@@ -1,3 +1,4 @@
+pub mod transaction;
 pub mod txin;
 pub mod txout;
 
