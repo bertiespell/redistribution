@@ -6,13 +6,13 @@ use secp256k1::{Message, PublicKey, Secp256k1, SecretKey, SerializedSignature};
 use std::io::{Error, ErrorKind, Result};
 use std::ops::Index;
 
-fn sign_tx_in(
+pub fn sign_tx_in(
     transaction: Transaction,
     txin_index: usize,
     private_key: SecretKey,
     unspent_tx_outs: Vec<UnspentTxOut>,
 ) -> Result<SerializedSignature> {
-    let tx_in: &txin::TxIn = transaction.txIns.index(txin_index);
+    let tx_in: &txin::TxIn = transaction.tx_ins.index(txin_index);
     let data_to_sign = Message::from_slice(transaction.id.as_bytes()).unwrap();
 
     match find_unspent_txout(&tx_in.tx_out_id, tx_in.tx_out_index, unspent_tx_outs) {
@@ -31,7 +31,7 @@ fn sign_tx_in(
     }
 }
 
-fn find_unspent_txout(
+pub fn find_unspent_txout(
     transaction_id: &str,
     out_index: usize,
     unspent_tx_outs: Vec<sign_transaction::UnspentTxOut>,

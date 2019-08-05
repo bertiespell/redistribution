@@ -1,4 +1,5 @@
 // txIns unlock the coins and the txOuts ‘relock’ the coins
+#[derive(Clone)]
 pub struct TxIn {
     pub tx_out_id: String,
     pub tx_out_index: usize,

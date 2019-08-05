@@ -4,8 +4,8 @@ use openssl::sha;
 
 pub struct Transaction {
     pub id: String,
-    pub txIns: Vec<txin::TxIn>,
-    pub txOuts: Vec<txout::TxOut>,
+    pub tx_ins: Vec<txin::TxIn>,
+    pub tx_outs: Vec<txout::TxOut>,
 }
 
 /**
@@ -14,7 +14,7 @@ The transaction id is calculated by taking a hash from the contents of the trans
 
 fn get_transaction_id(transaction: Transaction) -> String {
     let txin_content = transaction
-        .txIns
+        .tx_ins
         .iter()
         .map(|txin| {
             let mut bytes: Vec<u8> = vec![];
@@ -32,7 +32,7 @@ fn get_transaction_id(transaction: Transaction) -> String {
         .collect::<Vec<u8>>();
 
     let txout_content = transaction
-        .txOuts
+        .tx_outs
         .iter()
         .map(|txout| {
             let mut bytes: Vec<u8> = vec![];
